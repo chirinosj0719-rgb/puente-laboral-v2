@@ -16,7 +16,7 @@
   --sh-1:0 1px 2px rgba(27,19,14,.05),0 2px 8px -2px rgba(27,19,14,.06);
   --sh-2:0 1px 2px rgba(27,19,14,.04),0 12px 32px -12px rgba(27,19,14,.16);
   --sh-3:0 40px 80px -30px rgba(122,52,12,.35),0 12px 30px -12px rgba(27,19,14,.18);
-  --top:72px; --tabs:72px;
+  --top:68px; --tabs:72px; --gut:clamp(16px,4.2vw,64px);
   --ease:cubic-bezier(.2,.8,.2,1);
   --sat:env(safe-area-inset-top,0px); --sab:env(safe-area-inset-bottom,0px);
 }
@@ -52,11 +52,18 @@ p{margin:0}
 .sel i::before{left:-5px;bottom:-5px}.sel i::after{right:-5px;bottom:-5px}
 
 /* ——— barra superior flotante ——— */
-.top{position:sticky;top:0;z-index:50;padding:calc(10px + var(--sat)) 12px 10px;pointer-events:none}
-.top-in{pointer-events:auto;max-width:1120px;margin:0 auto;height:52px;display:flex;align-items:center;gap:10px;padding:0 8px 0 14px;border-radius:18px;background:rgba(255,255,255,.78);backdrop-filter:saturate(1.6) blur(18px);-webkit-backdrop-filter:saturate(1.6) blur(18px);border:1px solid rgba(220,209,195,.7);box-shadow:var(--sh-1)}
+.top{position:sticky;top:0;z-index:50;padding-top:var(--sat);background:rgba(248,244,238,.82);backdrop-filter:saturate(1.6) blur(18px);-webkit-backdrop-filter:saturate(1.6) blur(18px);border-bottom:1px solid rgba(220,209,195,.6);transition:background .3s,border-color .3s,color .3s}
+.top-in{height:var(--top);display:flex;align-items:center;gap:12px;padding:0 var(--gut)}
+/* sobre la portada oscura la barra es transparente (como en tasteskill) */
+body[data-view="inicio"]:not(.scrolled) .top,body[data-view="trabajar"]:not(.scrolled) .top{background:transparent;border-color:transparent;backdrop-filter:none;-webkit-backdrop-filter:none}
+body[data-view="inicio"]:not(.scrolled) .logo,body[data-view="trabajar"]:not(.scrolled) .logo{color:#fff}
+body[data-view="inicio"]:not(.scrolled) .nav a,body[data-view="trabajar"]:not(.scrolled) .nav a{color:rgba(255,255,255,.72)}
+body[data-view="inicio"]:not(.scrolled) .nav a:hover,body[data-view="trabajar"]:not(.scrolled) .nav a:hover,body[data-view="inicio"]:not(.scrolled) .nav a[aria-current="page"],body[data-view="trabajar"]:not(.scrolled) .nav a[aria-current="page"]{color:#fff;background:rgba(255,255,255,.12)}
+body[data-view="inicio"]:not(.scrolled) .help-top,body[data-view="trabajar"]:not(.scrolled) .help-top{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.22);color:#fff;box-shadow:none}
+body[data-view="inicio"]:not(.scrolled) .demo-pill,body[data-view="trabajar"]:not(.scrolled) .demo-pill{background:rgba(255,90,31,.2);border-color:rgba(255,160,120,.4);color:#FFD2BC}
 .logo{display:flex;align-items:center;gap:8px;text-decoration:none;font:700 1.08rem var(--f);letter-spacing:-.03em;white-space:nowrap;color:var(--ink)}
 .logo svg{width:30px;height:30px}
-.nav{display:none;gap:2px;margin:0 auto}
+.nav{display:none;gap:2px;margin-left:28px}
 .nav a{text-decoration:none;font-weight:500;padding:.5rem .9rem;border-radius:12px;color:var(--muted);font-size:.96rem}
 .nav a:hover{color:var(--ink);background:var(--bg-2)}
 .nav a[aria-current="page"]{color:var(--ink);background:var(--bg-2);font-weight:600}
@@ -187,7 +194,6 @@ body[data-flow] .toast{bottom:calc(92px + var(--sab))}
   body{padding-bottom:0}
   .tabs{display:none}
   .nav{display:flex}
-  .demo-pill{margin-left:0}
   .toast{bottom:28px}
 }
 @media (max-width:420px){.help-top{padding:0 .8rem}}

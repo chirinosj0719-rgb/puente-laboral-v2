@@ -29,7 +29,7 @@
           </div>
         </div>
         <div style="display:grid;gap:14px">
-          <div class="list"><p class="eti" style="padding:16px 18px 4px">Preguntas frecuentes</p>${FAQ.map(f => `<details class="faq"><summary>${f[0]}</summary><p>${f[1]}</p></details>`).join('')}</div>
+          <div class="list"><p class="eti">Preguntas frecuentes</p>${FAQ.map(f => `<details class="faq"><summary>${f[0]}</summary><p>${f[1]}</p></details>`).join('')}</div>
           <div class="list">
             <a target="_blank" rel="noopener" href="${PL.wa('Hola, tengo una consulta sobre Puente Laboral.')}">${PL.ic('wa')}<span>Escríbenos por WhatsApp<span class="sub">Te respondemos lo antes posible</span></span>${PL.ic('chev', 'i chev')}</a>
             <button type="button" id="wipe" style="color:#9B1C10">${PL.ic('trash')}<span>Borrar mis datos de este dispositivo<span class="sub">Pedidos, perfil y ganancias de la demo</span></span></button>

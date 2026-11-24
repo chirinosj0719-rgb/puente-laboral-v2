@@ -161,16 +161,16 @@
     const kind = !PL.canNow(svc) ? 'prog' : Math.random() < .55 ? 'ya' : 'prog', direct = Math.random() < .22;
     const date = kind === 'prog' ? PL.isoDay(new Date(Date.now() + PL.ri(1, 9) * 864e5)) : '', time = kind === 'prog' ? PL.pick(['08:00', '09:00', '10:00', '14:00', '16:00', '19:00']) : '';
     const repeat = kind === 'prog' && Math.random() < .3 ? PL.pick(['semana', 'quincena']) : 'no';
-    const r = {id: 'r' + n, kind, direct, date, time, repeat, svc: svc.id, tasks: svc.t.length ? [PL.pick(svc.t)] : [], district: PL.pick(W.zones), km: +PL.rnd(.5, 5).toFixed(1), when: kind === 'ya' ? 'Ahora' : PL.whenText({type: 'fecha', date, time}), price: PL.snap(PL.rnd(svc.min, svc.max), svc), client: PL.pick(PL.DEMO.clients)};
+    const r = {id: 'r' + n, kind, direct, date, time, repeat, svc: svc.id, tasks: svc.t.length ? [PL.pick(svc.t)] : [], district: PL.pick(W.zones), km: +PL.rnd(.5, 5).toFixed(1), when: kind === 'ya' ? 'Ahora' : PL.whenText({type: 'fecha', date, time}), price: 0, client: PL.pick(PL.DEMO.clients)};
     const el = document.createElement('article');
     el.className = `req rise ${kind}${direct ? ' direct' : ''}`;
     el.innerHTML = `<span class="req-tag ${direct ? 'dir' : kind}">${direct ? PL.ic('heart') + `${PL.esc(r.client)} te eligió otra vez` : kind === 'ya' ? PL.ic('bolt') + 'Al toque' : PL.ic('cal') + PL.esc(r.when) + (repeat !== 'no' ? ' · ' + PL.REPEAT[repeat].toLowerCase() : '')}</span>
-      <div class="req-h"><span class="svc-ic">${PL.si(svc.i)}</span><div class="req-i"><b>${PL.esc(svc.n)}</b><span>${PL.esc(r.district)} · a ${r.km} km · ${PL.esc(r.when)}</span></div><div class="req-p"><b>${PL.money(r.price)}</b><span>${PL.unitText(svc.u)}</span></div></div>
+      <div class="req-h"><span class="svc-ic">${PL.si(svc.i)}</span><div class="req-i"><b>${PL.esc(svc.n)}</b><span>${PL.esc(r.district)} · ${PL.esc(r.when)}</span></div></div>
       <p class="req-note">${PL.esc(r.client)}: “${PL.esc(r.tasks[0] || 'Trabajo general')}”</p>
-      <div class="req-acts"><button class="btn btn-g btn-sm" type="button" data-a="pass">Pasar</button><button class="btn btn-l btn-sm" type="button" data-a="ctr">Contraofertar</button><button class="btn btn-v btn-sm" type="button" data-a="ok">Aceptar</button></div>
-      <div class="counter" hidden>${[1, 2, 4].map(k => `<button class="chip" type="button" data-p="${r.price + st * k}">${PL.money(r.price + st * k)}</button>`).join('')}</div>
+      <div class="req-acts"><button class="btn btn-g btn-sm" type="button" data-a="pass">Pasar</button><button class="btn btn-v btn-sm" type="button" data-a="ok">Aceptar</button></div>
+      <div class="counter" hidden><span style="font-weight:600">S/</span><input class="in" type="number" inputmode="numeric" min="1" placeholder="¿Cuánto cobras?" aria-label="Cuánto cobras" style="flex:1;min-height:42px"><button class="btn btn-v btn-sm" type="button" data-a="send">Confirmar</button></div>
       ${kind === 'ya' ? '<i class="of-bar" aria-hidden="true"><i style="animation-duration:25s"></i></i>' : ''}`;
-    const kill = () => { if (!el.isConnected) return; const p = el.parentNode; el.remove(); if (p && !p.children.length) { const i = PL.$('#idle', view); if (i) i.hidden = false; } };
+    const kill = () => { if (!el.isConnected || el.dataset.hold) return; const p = el.parentNode; el.remove(); if (p && !p.children.length) { const i = PL.$('#idle', view); if (i) i.hidden = false; } };
     PL.later(kill, kind === 'ya' ? 25000 : 60000);
     const take = price => {
       const W2 = PL.S.worker;
@@ -180,8 +180,8 @@
     el.onclick = e => {
       const a = e.target.closest('[data-a]'), p = e.target.closest('[data-p]');
       if (a && a.dataset.a === 'pass') kill();
-      if (a && a.dataset.a === 'ok') take(r.price);
-      if (a && a.dataset.a === 'ctr') el.querySelector('.counter').hidden = !el.querySelector('.counter').hidden;
+      if (a && a.dataset.a === 'ok') { el.dataset.hold = '1'; const c = el.querySelector('.counter'); c.hidden = false; el.querySelector('.req-acts').hidden = true; const bar = el.querySelector('.of-bar'); if (bar) bar.remove(); c.querySelector('input').focus(); }
+      if (a && a.dataset.a === 'send') { const v = Math.round(Number(el.querySelector('.counter input').value)); if (!(v > 0)) { PL.toast('Escribe cuánto cobras'); return; } take(v); }
       if (p) {
         const price = Number(p.dataset.p);
         el.querySelector('.req-acts').hidden = true;

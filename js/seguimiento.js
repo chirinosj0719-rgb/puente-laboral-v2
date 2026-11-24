@@ -39,30 +39,35 @@
     PL.$('#cx', ff).onclick = () => cancel(o);
     const box = PL.$('#offers', fb), used = [];
     let spawned = 0, live = 0;
-    function want(){ const r = o.price / PL.mid(svc); return r < .75 ? 1 : r < .95 ? 3 : 4; }
+    function want(){ return 3; }
     function spawn(){
-      const m = PL.mid(svc), r = o.price / m, w = PL.fakeWorker(used); used.push(w.name);
-      let price = o.price;
-      if (r < .9) price = Math.max(o.price + st, PL.snap(m * PL.rnd(.95, 1.1), svc));
-      else if (r < 1 ? Math.random() < .5 : Math.random() < .25) price = o.price + st * PL.ri(1, 2);
-      const id = 'of' + (++spawned), same = price === o.price, team = o.people > 1;
+      const w = PL.fakeWorker(used); used.push(w.name);
+      const price = o.price, id = 'of' + (++spawned), team = o.people > 1;
       map.addPin(id, w);
       const el = document.createElement('article');
       el.className = 'offer rise' + (spawned === 1 ? ' best' : ''); el.dataset.id = id;
-      el.innerHTML = `<div class="of-top">${PL.avatar(w.name, w.color)}<div class="of-who"><b>${PL.esc(PL.short(w.name))}${team ? ' y equipo' : ''}</b><div class="meta">${PL.starsH(w.rating)}<span>${w.jobs} trabajos</span><span>${w.km} km</span></div></div><div class="of-pr"><b>${PL.money(price)}</b><span class="${same ? 'same' : 'up'}">${same ? 'Tu precio' : 'Contraoferta'}</span></div></div>
-        <div class="of-badges"><span class="pill v">${PL.ic('check')}DNI verificado</span>${w.bg ? `<span class="pill v">${PL.ic('shield')}Antecedentes OK</span>` : ''}${prog ? `<span class="pill o">${PL.ic('cal')}Disponible ${PL.esc(PL.dayName(o.when.date).toLowerCase())}</span>${o.repeat !== 'no' ? `<span class="pill o">Puede ${PL.esc(PL.REPEAT[o.repeat].toLowerCase())}</span>` : ''}` : `<span class="pill o">${PL.ic('clock')}Llega en ${w.eta} min</span>`}${team ? `<span class="pill o">${PL.ic('users')}Equipo de ${o.people}</span>` : ''}</div>
-        <div class="of-acts"><button class="btn btn-l btn-sm" type="button" data-no>Rechazar</button><button class="btn btn-t btn-sm" type="button" data-ok>Aceptar ${PL.money(price)}</button></div>
+      el.innerHTML = `<div class="of-top">${PL.avatar(w.name, w.color)}<div class="of-who"><b>${PL.esc(PL.short(w.name))}${team ? ' y equipo' : ''}</b><div class="meta"><span>${prog ? 'Disponible ' + PL.esc(PL.dayName(o.when.date).toLowerCase()) : 'Llega en ' + w.eta + ' min'}</span><button class="prof-link" type="button" data-prof>Ver perfil</button></div></div><div class="of-pr"><b>${PL.money(price)}</b><span class="same">Acepta tu precio</span></div></div>
+        <div class="of-badges"><span class="pill v">${PL.ic('check')}DNI verificado</span>${prog && o.repeat !== 'no' ? `<span class="pill o">Puede ${PL.esc(PL.REPEAT[o.repeat].toLowerCase())}</span>` : ''}${team ? `<span class="pill o">${PL.ic('users')}Equipo de ${o.people}</span>` : ''}</div>
+        <div class="of-acts"><button class="ibtn" type="button" data-no aria-label="Rechazar">${PL.ic('x')}</button><button class="btn btn-l btn-sm" type="button" data-chat>${PL.ic('chat')}Escribir</button><button class="btn btn-t btn-sm" type="button" data-ok>Aceptar ${PL.money(price)}</button></div>
         ${prog ? '' : '<i class="of-bar" aria-hidden="true"><i style="animation-duration:30s"></i></i>'}`;
       box.appendChild(el); live++;
-      const kill = () => { if (!el.isConnected) return; el.remove(); map.removePin(id); live--; };
+      const kill = () => { if (!el.isConnected || el.dataset.hold) return; el.remove(); map.removePin(id); live--; };
       if (!prog) PL.later(kill, 30000);
-      el.querySelector('[data-no]').onclick = kill;
-      el.querySelector('[data-ok]').onclick = () => {
-        o.worker = w; o.price = price; o.pin = String(PL.ri(1000, 9999)); o.eta = w.eta; o.chat = [];
+      el.querySelector('[data-no]').onclick = () => { el.dataset.hold = ''; kill(); };
+      const accept = amt => {
+        o.worker = w; o.price = amt || price; o.pin = String(PL.ri(1000, 9999)); o.eta = w.eta; o.chat = o.qs && o.qs[w.name] ? o.qs[w.name].msgs.filter(m => m.t) : [];
         o.wpos = null;
         PL.toast(`${PL.short(w.name)} aceptó tu pedido`);
         set(o, prog ? 'programado' : 'en_camino');
       };
+      el.querySelector('[data-ok]').onclick = () => accept();
+      const openChat = () => {
+        el.dataset.hold = '1'; const bar = el.querySelector('.of-bar'); if (bar) bar.remove();
+        o.qs = o.qs || {}; const q = o.qs[w.name] = o.qs[w.name] || {msgs: [], stage: 0};
+        PL.quoteChat({w, svc, whenTxt: prog ? PL.whenText(o.when) : 'Al toque', tasks: o.tasks, price: o.price, msgs: q.msgs, state: q, save: PL.save, onAccept: (amt, sum) => { if (sum) o.note = (o.note ? o.note + '\n' : '') + sum; if (el.isConnected) accept(amt); }});
+      };
+      el.querySelector('[data-chat]').onclick = openChat;
+      el.querySelectorAll('[data-prof], .of-top .av').forEach(x => x.onclick = () => PL.profile(w, {svc, district: o.district, when: prog ? PL.whenText(o.when) : 'Llega en ' + w.eta + ' min', onAccept: () => { if (el.isConnected) accept(); }, acceptLabel: `Aceptar ${PL.money(price)}`, onChat: openChat}));
     }
     PL.later(spawn, prog ? 2200 : 1600);
     PL.every(() => { if (live < want() && spawned < want() + 4) spawn(); }, prog ? 4200 : 3300);
@@ -76,11 +81,11 @@
 
   /* ——— 1b. pedido directo a un trabajador de confianza ——— */
   function direct(view, o){
-    const svc = PL.svc(o.svc), f = PL.fav(o.direct) || {name: o.direct, color: '#FFD86B', rating: 4.8, jobs: 40, phone: '9** *** ***'};
+    const svc = PL.svc(o.svc), f = PL.fav(o.direct) || o.directW || {name: o.direct, color: '#FFD86B'};
     const n = PL.history(f.name).length, nm = PL.short(f.name);
     const {map, fb, ff} = shell(view, o, 'm', `Esperando a <span class="k">${PL.esc(nm)}</span>`);
     map.addPin('w', f);
-    fb.innerHTML = `<div class="direct">${PL.avatar(f.name, f.color)}<div><b>${PL.esc(f.name)}</b><span>${n ? `Te ayudó ${n} ${n === 1 ? 'vez' : 'veces'} · ` : ''}${PL.starsH(f.rating)}</span></div><span class="heart" aria-hidden="true">${PL.ic('heart')}</span></div>
+    fb.innerHTML = `<div class="direct">${PL.avatar(f.name, f.color)}<div><b>${PL.esc(f.name)}</b><span>${n ? `Te ayudó ${n} ${n === 1 ? 'vez' : 'veces'}` : 'De confianza'}</span></div><span class="heart" aria-hidden="true">${PL.ic('heart')}</span></div>
       <div class="seek" id="dst"><span class="ld" aria-hidden="true"><i></i><i></i><i></i></span><div><b>Le enviamos tu pedido</b><span>${PL.esc(svc.n)} · ${o.mode === 'ya' ? 'al toque' : PL.esc(PL.whenText(o.when))} · ${PL.money(o.price)}</span></div></div>
       <p class="muted" id="dnote">${o.fallback ? 'Si no puede, te mostramos ofertas de otros trabajadores.' : 'Si no puede, te avisamos para que elijas otra opción.'}</p>`;
     ff.hidden = false;
@@ -120,7 +125,7 @@
     fb.innerHTML = `<div class="trk-h">${head}</div>
       ${s === 'programado' ? `<div class="when-sum">${PL.ic('cal')}<span><b>${PL.esc(PL.whenText(o.when))}</b>${o.repeat && o.repeat !== 'no' ? ' · ' + PL.REPEAT[o.repeat].toLowerCase() : ''}<br><span class="muted">Te recordamos un día antes.</span></span></div>` : ''}
       <ol class="trk-steps">${['Aceptado', 'En camino', 'Llegó', 'Trabajando'].map((t, i) => `<li class="${i < idx ? 'done' : i === idx ? 'now' : ''}">${t}</li>`).join('')}</ol>
-      <div class="wk">${PL.avatar(w.name, w.color)}<div class="wk-i"><b>${PL.esc(PL.short(w.name))}${o.people > 1 ? ` <span class="pill o">+${o.people - 1}</span>` : ''}</b><div class="meta">${PL.starsH(w.rating)}<span>${w.jobs} trabajos</span><span>${PL.esc(svc.n)}</span></div></div>
+      <div class="wk">${PL.avatar(w.name, w.color)}<div class="wk-i"><b>${PL.esc(PL.short(w.name))}${o.people > 1 ? ` <span class="pill o">+${o.people - 1}</span>` : ''}</b><div class="meta"><span>${PL.esc(svc.n)}</span><span class="pill v">${PL.ic('check')}Verificado</span></div></div>
         <div class="wk-acts"><button class="ibtn" type="button" id="chat" aria-label="Escribirle">${PL.ic('chat')}</button><button class="ibtn" type="button" id="call" aria-label="Llamarle">${PL.ic('phone')}</button></div></div>
       ${s !== 'trabajando' ? `<div class="pin"><p><b>Tu código de inicio</b>${s === 'llego' ? 'Díselo ahora: así confirma que es la persona correcta.' : 'Díselo solo cuando llegue a tu puerta.'}</p><div class="code" aria-label="Código ${o.pin.split('').join(' ')}">${o.pin.split('').map(d => `<span>${d}</span>`).join('')}</div></div>` : ''}
       <div class="sum"><dl class="dl"><dt>Precio</dt><dd>${PL.money(PL.total(o))}</dd><dt>Pago</dt><dd style="text-transform:capitalize">${PL.esc(o.pay)}</dd>${o.tasks.length ? `<dt>Trabajo</dt><dd>${PL.esc(o.tasks.join(', '))}</dd>` : ''}</dl></div>
@@ -130,6 +135,7 @@
       <div class="demo-skip">Demo <button type="button" id="skip">${s === 'programado' ? 'Simular que llegó el día' : 'Avanzar'} ›</button></div>`;
     PL.$('#chat', fb).onclick = () => PL.chat(o);
     PL.$('#call', fb).onclick = () => PL.toast('En la demo no se hacen llamadas. Usa el chat.');
+    PL.$$('.wk .av, .wk-i b', fb).forEach(x => x.onclick = () => PL.profile(w, {svc, district: o.district, when: PL.whenText(o.when)}));
     PL.$('#share', fb).onclick = () => share(o);
     PL.$('#help', fb).onclick = () => help(o);
     const cx = PL.$('#cx', fb); if (cx) cx.onclick = () => cancel(o);
@@ -185,6 +191,99 @@
       onOpen: s => { s.querySelector('#hShare').onclick = () => share(o); }});
   }
 
+  /* perfil del trabajador (solo dentro de un pedido) */
+  PL.profile = (w, opt = {}) => {
+    const h = PL.history(w.name), svc = opt.svc;
+    PL.sheet({title: PL.esc(w.name),
+      body: `<div style="display:flex;align-items:center;gap:16px">${PL.avatar(w.name, w.color, 'l')}<div><b style="font-size:1.25rem;font-weight:600;letter-spacing:-.025em">${PL.esc(w.name)}</b><p class="muted">${svc ? PL.esc(svc.n) : ''}${opt.district ? ' · ' + PL.esc(opt.district) : ''}</p></div></div>
+        <div class="chips" style="margin-top:16px"><span class="pill v">${PL.ic('check')}DNI verificado</span><span class="pill v">${PL.ic('shield')}Antecedentes revisados</span>${PL.fav(w.name) ? `<span class="pill a">${PL.ic('heart')}En Mis trabajadores</span>` : ''}</div>
+        <div class="sum"><dl class="dl">${opt.when ? `<dt>Disponibilidad</dt><dd>${PL.esc(opt.when)}</dd>` : ''}<dt>Contigo</dt><dd>${h.length ? `${h.length} ${h.length === 1 ? 'trabajo' : 'trabajos'}` : 'Primera vez'}</dd></dl></div>
+        <p class="muted" style="margin-top:14px;font-size:.88rem">Las calificaciones de otros clientes se mostrarán aquí cuando la app esté activa.</p>`,
+      foot: (opt.onAccept || opt.onChat) ? `${opt.onChat ? `<button class="btn btn-l" type="button" id="pChat">${PL.ic('chat')}Escribirle</button>` : '<button class="btn btn-l" type="button" data-close>Cerrar</button>'}${opt.onAccept ? `<button class="btn btn-t" type="button" id="pAcc">${opt.acceptLabel || 'Aceptar'}</button>` : ''}` : '',
+      onOpen: s => { const b = s.querySelector('#pAcc'); if (b) b.onclick = () => { PL.closeSheet(); opt.onAccept(); }; const ch = s.querySelector('#pChat'); if (ch) ch.onclick = () => opt.onChat(); }});
+  };
+
+  /* ——— chat antes de contratar: explicar con detalle y recibir un presupuesto ———
+     El monto siempre lo pone el cliente: la demo no inventa precios. */
+  const ASK = {
+    hogar: ['¿Me cuentas qué pasó exactamente y desde cuándo? Si puedes, mándame una foto.', '¿Es casa o departamento? ¿En qué piso? ¿Hay que comprar repuestos o ya los tienes?'],
+    casa: ['¿Me cuentas con detalle qué necesitas? ¿Cuántos ambientes son o qué tamaño tiene?', '¿Llevo mis productos y herramientas o ya tienes?'],
+    cuidado: ['¿A quién vamos a cuidar y qué necesita durante el día?', '¿Hay algún cuidado especial, medicina o alergia que deba saber?'],
+    mudanza: ['¿Qué cosas hay que llevar y desde dónde hasta dónde?', '¿Hay escaleras o ascensor? ¿Algún mueble grande o delicado?'],
+    belleza: ['¿Qué servicio quieres exactamente y para cuántas personas?', '¿Tienes una referencia o foto del estilo que buscas?'],
+    eventos: ['¿Qué tipo de evento es, para cuántos invitados y cuántas horas?', '¿El lugar tiene cocina, barra o equipo? ¿Qué debo llevar?'],
+    clases: ['¿Para quién son las clases y en qué nivel está?', '¿Qué días y horarios te acomodan? ¿Hay algún tema urgente?'],
+    negocio: ['¿Qué tipo de negocio es y qué tareas habría en el turno?', '¿Cuál sería el horario y cuántos días?']
+  };
+  const SVC_ASK = {
+    jardinero: ['¿Qué tamaño tiene el jardín más o menos? ¿Hay que podar árboles o solo el césped?', '¿Tienes podadora y herramientas, o llevo las mías?'],
+    gasfitero: ['¿Dónde está el problema: cocina, baño, terma? Si puedes, mándame una foto.', '¿Hace cuánto pasa? ¿Hay que cambiar alguna pieza o ya la tienes?'],
+    electricista: ['¿Qué pasa exactamente: no hay luz, salta la llave o quieres instalar algo?', '¿Es casa o departamento? ¿Tienes los materiales o los compro yo?'],
+    limpieza: ['¿Cuántos ambientes y baños son? ¿Es limpieza general o profunda?', '¿Llevo productos de limpieza o ya tienes?']
+  };
+  const HELP = {
+    hogar: ['Te mando una foto', 'Es urgente', 'Es un departamento', 'Trae los materiales'],
+    casa: ['Te mando una foto', 'Es una casa grande', 'Tengo herramientas', 'Sería cada semana'],
+    cuidado: ['Es mi mamá', 'Es mi papá', 'Toma medicinas', 'Sería de noche'],
+    mudanza: ['Te mando una foto', 'Hay escaleras', 'Hay ascensor', 'Tengo muebles grandes'],
+    belleza: ['Te mando una foto', 'Es para un evento', 'Somos dos personas'],
+    eventos: ['Es un cumpleaños', 'Es un matrimonio', 'El lugar tiene cocina'],
+    clases: ['Es para mi hijo', 'Nivel básico', 'Fines de semana'],
+    negocio: ['Es una tienda', 'Turno de día', 'Turno de noche']
+  };
+  const shrink = (file, cb) => {
+    const r = new FileReader();
+    r.onload = () => { const img = new Image(); img.onload = () => { const k = Math.min(1, 360 / Math.max(img.width, img.height)); const cv = document.createElement('canvas'); cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k); cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height); cb(cv.toDataURL('image/jpeg', .72)); }; img.src = r.result; };
+    r.readAsDataURL(file);
+  };
+  PL.quoteChat = c => {
+    const w = c.w, svc = c.svc, first = w.name.split(' ')[0], M = c.msgs, st = c.state;
+    const asks = SVC_ASK[svc.id] || ASK[svc.c] || ['Cuéntame con detalle qué necesitas.', '¿Hay algo más que deba saber para el presupuesto?'];
+    const chips = (HELP[svc.c] || ['Te mando una foto', 'Es urgente']);
+    const save = () => { if (c.save) c.save(); };
+    if (!M.length) { M.push({me: false, t: `Hola, soy ${first}. Para armarte un buen presupuesto cuéntame bien qué necesitas. ${asks[0]}`}); save(); }
+    const summary = () => [...(c.tasks || []), ...M.filter(m => m.me && m.t && !/^Tengo pensado/.test(m.t) && !chips.includes(m.t)).map(m => m.t)].join('. ').slice(0, 240);
+    const quote = amount => ({me: false, quote: {svc: svc.n, work: summary() || svc.n, when: c.whenTxt, total: amount}});
+    const qHtml = q => `<div class="msg it quote"><span class="eti">${PL.ic('wallet')}Presupuesto · ${PL.esc(q.svc)}</span><dl class="dl"><dt>Trabajo</dt><dd>${PL.esc(q.work)}</dd><dt>Incluye</dt><dd>Mano de obra y revisión. Los materiales los vemos juntos antes de comprarlos.</dd><dt>Cuándo</dt><dd>${PL.esc(q.when)}</dd><dt>Total</dt><dd><b>${PL.money(q.total)}</b> <span class="muted">· el monto que propusiste</span></dd></dl>${c.onAccept ? `<button class="btn btn-a btn-sm btn-full" type="button" data-acq="${q.total}">Aceptar presupuesto</button>` : ''}</div>`;
+    PL.sheet({title: `${PL.avatar(w.name, w.color, 's')}<span>${PL.esc(PL.short(w.name))}</span>`,
+      body: `<p class="muted chat-tip">Explícale todo con detalle: así ${PL.esc(first)} te arma un presupuesto bien hecho.</p><div class="chat" id="cl" aria-live="polite"></div><div class="quick" id="qk"></div>
+        <div class="amt" id="amt" hidden><span>S/</span><input type="number" inputmode="numeric" min="1" placeholder="¿Cuánto tienes pensado?" aria-label="Monto en soles"><button class="btn btn-t btn-sm" type="button">Proponer</button></div>
+        <form class="chat-f" id="cf"><label class="ibtn" title="Enviar una foto">${PL.ic('cam')}<input type="file" accept="image/*" hidden></label><input class="in" id="ci" placeholder="Escribe con detalle…" autocomplete="off" aria-label="Mensaje"><button class="btn btn-t" type="submit" aria-label="Enviar">${PL.ic('arrow')}</button></form>`,
+      onOpen: s => {
+        const cl = s.querySelector('#cl'), qk = s.querySelector('#qk'), amt = s.querySelector('#amt'), ci = s.querySelector('#ci');
+        let typing = false;
+        const draw = () => {
+          cl.innerHTML = M.map(m => m.quote ? qHtml(m.quote) : m.img ? `<div class="msg me img"><img src="${m.img}" alt="Foto enviada"></div>` : `<div class="msg ${m.me ? 'me' : 'it'}">${PL.esc(m.t)}</div>`).join('') + (typing ? '<div class="msg it typing" aria-label="Escribiendo"><i></i><i></i><i></i></div>' : '');
+          cl.scrollTop = cl.scrollHeight;
+          qk.innerHTML = st.stage < 2 ? chips.map(q => `<button class="chip" type="button">${PL.esc(q)}</button>`).join('') : '';
+          amt.hidden = st.stage !== 2;
+        };
+        const reply = (make, ms = 1200) => { typing = true; draw(); setTimeout(() => { typing = false; [].concat(make()).forEach(x => M.push(x)); save(); if (cl.isConnected) draw(); }, ms); };
+        const after = () => {
+          if (st.stage === 0) { st.stage = 1; reply(() => ({me: false, t: asks[1]})); }
+          else if (st.stage === 1) {
+            if (c.price) { st.stage = 3; reply(() => [{me: false, t: `Perfecto, ya entendí. Por tu oferta de ${PL.money(c.price)} esto es lo que incluyo:`}, quote(c.price)], 1500); }
+            else { st.stage = 2; reply(() => ({me: false, t: 'Perfecto, ya entendí lo que necesitas. ¿Cuánto tienes pensado pagar? Con eso te armo el presupuesto con el detalle.'})); }
+          }
+          else if (st.stage === 2) reply(() => ({me: false, t: 'Escríbeme abajo un monto aproximado en soles y te armo el presupuesto.'}));
+          else reply(() => ({me: false, t: PL.pick(['Entendido, lo tengo en cuenta.', 'Perfecto, lo agrego.', 'Listo. Cualquier otra cosa me dices.'])}));
+          save();
+        };
+        const send = t => { t = t.trim(); if (!t) return; if (t === 'Te mando una foto') { s.querySelector('#cf input[type=file]').click(); return; } M.push({me: true, t}); save(); draw(); after(); };
+        qk.onclick = e => { const b = e.target.closest('.chip'); if (b) send(b.textContent); };
+        s.querySelector('#cf').onsubmit = e => { e.preventDefault(); send(ci.value); ci.value = ''; };
+        s.querySelector('#cf input[type=file]').onchange = e => { const f = e.target.files[0]; if (!f) return; shrink(f, src => { M.push({me: true, img: src}); save(); draw(); if (st.stage < 2) after(); else reply(() => ({me: false, t: 'Gracias por la foto, así lo veo mejor.'})); }); };
+        amt.querySelector('button').onclick = () => {
+          const v = Math.round(Number(amt.querySelector('input').value));
+          if (!(v > 0)) { PL.toast('Escribe un monto en soles'); return; }
+          M.push({me: true, t: `Tengo pensado ${PL.money(v)}`}); st.stage = 3; save(); draw();
+          reply(() => [{me: false, t: 'Listo, con lo que me contaste te armé el presupuesto:'}, quote(v)], 1500);
+        };
+        cl.onclick = e => { const b = e.target.closest('[data-acq]'); if (!b) return; PL.closeSheet(); c.onAccept(Number(b.dataset.acq), summary()); };
+        draw();
+      }});
+  };
+
   /* chat con respuestas de ejemplo */
   PL.chat = o => {
     const w = o.worker;
@@ -228,7 +327,7 @@
       PL.$('#pt', fb).textContent = PL.money(t);
       PL.$('#paid', ff).textContent = `Ya pagué ${PL.money(t)}`;
       PL.$('#how', fb).innerHTML = m === 'efectivo' ? `<span class="mi" style="background:#D6F4E3">${PL.ic('cash')}</span><div><b>Entrégale ${PL.money(t)} en efectivo</b><br><span class="muted">Pide que te dé vuelto si hace falta.</span></div>` :
-        `<span class="mi" style="background:${m === 'yape' ? '#D4CBFF' : '#B4EEE1'}">${m === 'yape' ? 'Y' : 'P'}</span><div><b>${m === 'yape' ? 'Yapea' : 'Plinea'} ${PL.money(t)} a ${PL.esc(w.name)}</b><br><span class="muted mono">${w.phone} · número de ejemplo</span></div>`;
+        `<span class="mi" style="background:${m === 'yape' ? '#D4CBFF' : '#B4EEE1'}">${m === 'yape' ? 'Y' : 'P'}</span><div><b>${m === 'yape' ? 'Yapea' : 'Plinea'} ${PL.money(t)} a ${PL.esc(w.name)}</b><br><span class="muted">Te pasa su número al terminar.</span></div>`;
     }
     PL.$('#tips', fb).onclick = e => { const b = e.target.closest('[data-t]'); if (!b) return; tip = Number(b.dataset.t); PL.$$('[data-t]', fb).forEach(x => x.setAttribute('aria-pressed', x === b)); draw(); };
     PL.$('#pm', fb).onclick = e => { const b = e.target.closest('[data-m]'); if (!b) return; m = b.dataset.m; PL.$$('[data-m]', fb).forEach(x => x.setAttribute('aria-pressed', x === b)); draw(); };

@@ -18,9 +18,8 @@
   PL.cat = id => PL.CATS.find(c => c.id === id);
   PL.short = full => { const p = String(full).trim().split(/\s+/); return p[0] + (p[1] ? ' ' + p[1][0] + '.' : ''); };
   PL.initials = full => String(full).trim().split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase();
-  PL.step = svc => svc.max <= 30 ? 1 : 5;
+  PL.step = svc => (svc.u === 'hora' || svc.u === 'paseo') ? 1 : 5;
   PL.snap = (n, svc) => { const s = PL.step(svc); return Math.max(s, Math.round(n / s) * s); };
-  PL.mid = svc => PL.snap((svc.min + svc.max) / 2, svc);
   PL.isDesk = () => matchMedia('(min-width:900px)').matches;
 
   const DAYS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
@@ -148,7 +147,21 @@
   };
 
   /* ——— piezas compartidas ——— */
-  PL.avatar = (name, color, cls = '') => `<span class="av ${cls}" style="background:${color}" aria-hidden="true">${PL.esc(PL.initials(name))}</span>`;
+  /* avatares ilustrados para los trabajadores de ejemplo (img/av/); iniciales para personas reales */
+  PL.avSlug = name => String(name).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z ]/g, '').trim().replace(/\s+/g, '-');
+  PL.avSrc = name => PL.DEMO.workers.includes(name) ? `img/av/${PL.avSlug(name)}.png` : '';
+  PL.AV_BG = ['#FFE3D4', '#DCF2E8', '#ECE8FF', '#FFF1C9', '#FFD9C4', '#E3EEFC'];
+  PL.avBg = name => PL.AV_BG[Math.max(0, PL.DEMO.workers.indexOf(name)) % PL.AV_BG.length];
+  PL.avatar = (name, color, cls = '') => PL.avSrc(name)
+    ? `<span class="av pic ${cls}" style="background:${PL.avBg(name)}" aria-hidden="true"><img src="${PL.avSrc(name)}" alt="" loading="lazy"></span>`
+    : `<span class="av ${cls}" style="background:${color}" aria-hidden="true">${PL.esc(PL.initials(name))}</span>`;
+  /* trabajadores de un servicio: siempre los mismos para ese oficio */
+  PL.svcWorkers = (svcId, n = 6) => {
+    let h = 0; for (const c of svcId) h = (h * 31 + c.charCodeAt(0)) % 9973;
+    const pool = PL.DEMO.workers.slice(), out = [];
+    while (out.length < n && pool.length) { h = (h * 7 + 13) % 9973; out.push(pool.splice(h % pool.length, 1)[0]); }
+    return out.map(name => Object.assign(PL.fakeWorker(), {name}));
+  };
   PL.starsH = r => `<span class="stars">${PL.ic('star')}${Number(r).toFixed(1).replace('.', ',')}</span>`;
   PL.fakeWorker = (used = []) => {
     const pool = PL.DEMO.workers.filter(n => !used.includes(n));
@@ -156,7 +169,7 @@
     const km = +PL.rnd(.6, 4.6).toFixed(1);
     return {name, color: PL.pick(PL.DEMO.colors), rating: +PL.rnd(4.5, 5).toFixed(1), jobs: PL.ri(8, 240), years: PL.ri(1, 14), km, eta: Math.round(km * 4 + PL.ri(3, 7)), bg: Math.random() > .3, phone: `9${PL.ri(10, 99)} *** ${PL.ri(100, 999)}`};
   };
-  PL.footer = () => `<footer class="foot"><div class="foot-in"><span>© 2026 Puente Laboral · Gente de confianza, cerca de ti.</span><span><a href="#/trabajar">Quiero trabajar</a> · <a target="_blank" rel="noopener" href="${PL.wa('Hola, quiero más información sobre Puente Laboral.')}">WhatsApp</a></span></div><div class="foot-name" aria-hidden="true">Puente Laboral</div></footer>`;
+  PL.footer = () => `<footer class="foot"><div class="foot-in"><span>© 2026 Puente Laboral · Gente de confianza, cerca de ti. <span class="credit">Avatares 3D: Fluent Emoji de Microsoft (licencia MIT).</span></span><span><a href="#/trabajar">Quiero trabajar</a> · <a target="_blank" rel="noopener" href="${PL.wa('Hola, quiero más información sobre Puente Laboral.')}">WhatsApp</a></span></div><div class="foot-name" aria-hidden="true">Puente Laboral</div></footer>`;
 
   PL.demoInfo = () => PL.sheet({
     title: 'Estás viendo la demo',
@@ -168,6 +181,8 @@
   PL.$$('.ti[data-i]').forEach(s => { s.innerHTML = PL.ic(s.dataset.i); });
   PL.$('#helpTop').href = PL.wa('Hola, necesito ayuda con Puente Laboral.');
   PL.$('#demoPill').onclick = PL.demoInfo;
+  const onScroll = () => document.body.classList.toggle('scrolled', window.scrollY > 40);
+  window.addEventListener('scroll', onScroll, {passive: true}); onScroll();
   window.addEventListener('hashchange', PL.render);
   window.addEventListener('DOMContentLoaded', PL.render);
 })();
