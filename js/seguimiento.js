@@ -82,10 +82,10 @@
   /* ——— 1b. pedido directo a un trabajador de confianza ——— */
   function direct(view, o){
     const svc = PL.svc(o.svc), f = PL.fav(o.direct) || o.directW || {name: o.direct, color: '#FFD86B'};
-    const n = PL.history(f.name).length, nm = PL.short(f.name);
+    const n = PL.history(f.name).length, nm = f.isBiz ? f.name : PL.short(f.name);
     const {map, fb, ff} = shell(view, o, 'm', `Esperando a <span class="k">${PL.esc(nm)}</span>`);
     map.addPin('w', f);
-    fb.innerHTML = `<div class="direct">${PL.avatar(f.name, f.color)}<div><b>${PL.esc(f.name)}</b><span>${n ? `Te ayudó ${n} ${n === 1 ? 'vez' : 'veces'}` : 'De confianza'}</span></div><span class="heart" aria-hidden="true">${PL.ic('heart')}</span></div>
+    fb.innerHTML = `<div class="direct">${f.isBiz ? PL.bizLogo(f) : PL.avatar(f.name, f.color)}<div><b>${PL.esc(f.name)}</b><span>${f.isBiz ? 'Empresa · asignará a alguien de su equipo' : n ? `Te ayudó ${n} ${n === 1 ? 'vez' : 'veces'}` : 'De confianza'}</span></div><span class="heart" aria-hidden="true">${PL.ic('heart')}</span></div>
       <div class="seek" id="dst"><span class="ld" aria-hidden="true"><i></i><i></i><i></i></span><div><b>Le enviamos tu pedido</b><span>${PL.esc(svc.n)} · ${o.mode === 'ya' ? 'al toque' : PL.esc(PL.whenText(o.when))} · ${PL.money(o.price)}</span></div></div>
       <p class="muted" id="dnote">${o.fallback ? 'Si no puede, te mostramos ofertas de otros trabajadores.' : 'Si no puede, te avisamos para que elijas otra opción.'}</p>`;
     ff.hidden = false;
@@ -94,9 +94,10 @@
     bind();
     PL.later(() => {
       if (Math.random() < .85) {
-        const w = Object.assign(PL.fakeWorker(), {name: f.name, color: f.color, rating: f.rating, jobs: f.jobs, phone: f.phone});
-        Object.assign(o, {worker: w, pin: String(PL.ri(1000, 9999)), eta: w.eta, chat: [], wpos: null, wasDirect: true});
-        PL.toast(`${nm} confirmó tu pedido`);
+        const B = f.isBiz ? PL.biz(f.biz) : null, tm = B ? PL.pick(PL.bizTeam(B)).name : null;
+        const w = B ? Object.assign(PL.fakeWorker(), {name: tm}) : Object.assign(PL.fakeWorker(), {name: f.name, color: f.color, rating: f.rating, jobs: f.jobs, phone: f.phone});
+        Object.assign(o, {worker: w, pin: String(PL.ri(1000, 9999)), eta: w.eta, chat: [], wpos: null, wasDirect: true, biz: B ? {id: B.id, name: B.n} : null});
+        PL.toast(B ? `${B.n} confirmó y asignó a ${PL.short(tm)}` : `${nm} confirmó tu pedido`, 3400);
         set(o, o.mode === 'prog' ? 'programado' : 'en_camino');
       } else if (o.fallback) {
         o.direct = null; PL.toast(`${nm} no puede ese horario. Te mostramos otras ofertas.`, 3800); set(o, 'buscando');
@@ -125,7 +126,7 @@
     fb.innerHTML = `<div class="trk-h">${head}</div>
       ${s === 'programado' ? `<div class="when-sum">${PL.ic('cal')}<span><b>${PL.esc(PL.whenText(o.when))}</b>${o.repeat && o.repeat !== 'no' ? ' · ' + PL.REPEAT[o.repeat].toLowerCase() : ''}<br><span class="muted">Te recordamos un día antes.</span></span></div>` : ''}
       <ol class="trk-steps">${['Aceptado', 'En camino', 'Llegó', 'Trabajando'].map((t, i) => `<li class="${i < idx ? 'done' : i === idx ? 'now' : ''}">${t}</li>`).join('')}</ol>
-      <div class="wk">${PL.avatar(w.name, w.color)}<div class="wk-i"><b>${PL.esc(PL.short(w.name))}${o.people > 1 ? ` <span class="pill o">+${o.people - 1}</span>` : ''}</b><div class="meta"><span>${PL.esc(svc.n)}</span><span class="pill v">${PL.ic('check')}Verificado</span></div></div>
+      <div class="wk">${PL.avatar(w.name, w.color)}<div class="wk-i"><b>${PL.esc(PL.short(w.name))}${o.people > 1 ? ` <span class="pill o">+${o.people - 1}</span>` : ''}</b><div class="meta"><span>${PL.esc(svc.n)}${o.biz ? ' · de ' + PL.esc(o.biz.name) : ''}</span><span class="pill v">${PL.ic('check')}Verificado</span></div></div>
         <div class="wk-acts"><button class="ibtn" type="button" id="chat" aria-label="Escribirle">${PL.ic('chat')}</button><button class="ibtn" type="button" id="call" aria-label="Llamarle">${PL.ic('phone')}</button></div></div>
       ${s !== 'trabajando' ? `<div class="pin"><p><b>Tu código de inicio</b>${s === 'llego' ? 'Díselo ahora: así confirma que es la persona correcta.' : 'Díselo solo cuando llegue a tu puerta.'}</p><div class="code" aria-label="Código ${o.pin.split('').join(' ')}">${o.pin.split('').map(d => `<span>${d}</span>`).join('')}</div></div>` : ''}
       <div class="sum"><dl class="dl"><dt>Precio</dt><dd>${PL.money(PL.total(o))}</dd><dt>Pago</dt><dd style="text-transform:capitalize">${PL.esc(o.pay)}</dd>${o.tasks.length ? `<dt>Trabajo</dt><dd>${PL.esc(o.tasks.join(', '))}</dd>` : ''}</dl></div>
@@ -186,9 +187,9 @@
     const svc = PL.svc(o.svc);
     PL.sheet({title: '¿Necesitas ayuda?', body: `<div class="list">
       <a href="tel:105">${PL.ic('alert')}<span>Emergencia<span class="sub">Llamar a la Policía (105)</span></span>${PL.ic('chev', 'i chev')}</a>
-      <a target="_blank" rel="noopener" href="${PL.wa(`Hola, necesito ayuda con mi pedido ${o.id}: ${svc.n} con ${o.worker ? o.worker.name : '-'} en ${o.district}.`)}">${PL.ic('wa')}<span>Escribir a Puente Laboral<span class="sub">Te respondemos por WhatsApp</span></span>${PL.ic('chev', 'i chev')}</a>
+      <button type="button" id="hRep">${PL.ic('chat')}<span>Reportar un problema<span class="sub">Cuéntanos qué pasó con este pedido</span></span>${PL.ic('chev', 'i chev')}</button>
       <button type="button" id="hShare">${PL.ic('share')}<span>Compartir mi pedido<span class="sub">Que tu familia sepa quién va</span></span>${PL.ic('chev', 'i chev')}</button></div>`,
-      onOpen: s => { s.querySelector('#hShare').onclick = () => share(o); }});
+      onOpen: s => { s.querySelector('#hShare').onclick = () => share(o); s.querySelector('#hRep').onclick = () => PL.report(o); }});
   }
 
   /* perfil del trabajador (solo dentro de un pedido) */
@@ -237,15 +238,15 @@
     r.readAsDataURL(file);
   };
   PL.quoteChat = c => {
-    const w = c.w, svc = c.svc, first = w.name.split(' ')[0], M = c.msgs, st = c.state;
+    const w = c.w, svc = c.svc, first = w.isBiz ? w.name : w.name.split(' ')[0], M = c.msgs, st = c.state;
     const asks = SVC_ASK[svc.id] || ASK[svc.c] || ['Cuéntame con detalle qué necesitas.', '¿Hay algo más que deba saber para el presupuesto?'];
     const chips = (HELP[svc.c] || ['Te mando una foto', 'Es urgente']);
     const save = () => { if (c.save) c.save(); };
-    if (!M.length) { M.push({me: false, t: `Hola, soy ${first}. Para armarte un buen presupuesto cuéntame bien qué necesitas. ${asks[0]}`}); save(); }
+    if (!M.length) { M.push({me: false, t: `${w.isBiz ? `Hola, te escribimos de ${w.name}.` : `Hola, soy ${first}.`} Para armarte un buen presupuesto cuéntame bien qué necesitas. ${asks[0]}`}); save(); }
     const summary = () => [...(c.tasks || []), ...M.filter(m => m.me && m.t && !/^Tengo pensado/.test(m.t) && !chips.includes(m.t)).map(m => m.t)].join('. ').slice(0, 240);
     const quote = amount => ({me: false, quote: {svc: svc.n, work: summary() || svc.n, when: c.whenTxt, total: amount}});
     const qHtml = q => `<div class="msg it quote"><span class="eti">${PL.ic('wallet')}Presupuesto · ${PL.esc(q.svc)}</span><dl class="dl"><dt>Trabajo</dt><dd>${PL.esc(q.work)}</dd><dt>Incluye</dt><dd>Mano de obra y revisión. Los materiales los vemos juntos antes de comprarlos.</dd><dt>Cuándo</dt><dd>${PL.esc(q.when)}</dd><dt>Total</dt><dd><b>${PL.money(q.total)}</b> <span class="muted">· el monto que propusiste</span></dd></dl>${c.onAccept ? `<button class="btn btn-a btn-sm btn-full" type="button" data-acq="${q.total}">Aceptar presupuesto</button>` : ''}</div>`;
-    PL.sheet({title: `${PL.avatar(w.name, w.color, 's')}<span>${PL.esc(PL.short(w.name))}</span>`,
+    PL.sheet({title: `${w.isBiz ? PL.bizLogo(w, 's') : PL.avatar(w.name, w.color, 's')}<span>${PL.esc(w.isBiz ? w.name : PL.short(w.name))}</span>`,
       body: `<p class="muted chat-tip">Explícale todo con detalle: así ${PL.esc(first)} te arma un presupuesto bien hecho.</p><div class="chat" id="cl" aria-live="polite"></div><div class="quick" id="qk"></div>
         <div class="amt" id="amt" hidden><span>S/</span><input type="number" inputmode="numeric" min="1" placeholder="¿Cuánto tienes pensado?" aria-label="Monto en soles"><button class="btn btn-t btn-sm" type="button">Proponer</button></div>
         <form class="chat-f" id="cf"><label class="ibtn" title="Enviar una foto">${PL.ic('cam')}<input type="file" accept="image/*" hidden></label><input class="in" id="ci" placeholder="Escribe con detalle…" autocomplete="off" aria-label="Mensaje"><button class="btn btn-t" type="submit" aria-label="Enviar">${PL.ic('arrow')}</button></form>`,
@@ -387,8 +388,9 @@
       ${o.nextId && PL.order(o.nextId) ? `<a class="when-sum" href="#/pedido/${o.nextId}" style="text-decoration:none;margin-top:12px">${PL.ic('cal')}<span><b>Próxima vez: ${PL.esc(PL.whenText(PL.order(o.nextId).when))}</b><br><span class="muted">${PL.REPEAT[o.repeat]} con ${PL.esc(PL.short(o.worker.name))}</span></span></a>` : ''}
       <div style="display:grid;gap:8px;margin-top:16px">
       ${done && o.worker ? `<button class="btn btn-a" type="button" id="rh">${PL.ic('heart')}Volver a contratar a ${PL.esc(PL.short(o.worker.name))}</button><button class="btn btn-l" type="button" id="favT">${PL.fav(o.worker.name) ? PL.ic('check') + 'En Mis trabajadores' : PL.ic('plus') + 'Guardar en Mis trabajadores'}</button><a class="btn btn-l" href="#/pedir/${svc.id}?re=${o.id}">Pedir a otra persona</a>` : `<a class="btn btn-a" href="#/pedir/${svc.id}?re=${o.id}">Volver a pedir<span class="arr">${PL.ic('arrow')}</span></a>`}
-      <a class="btn btn-l" target="_blank" rel="noopener" href="${PL.wa(`Hola, quiero reportar un problema con mi pedido ${o.id}: ${svc.n}${o.worker ? ' con ' + o.worker.name : ''}.`)}">Reportar un problema</a>
+      <button class="btn btn-l" type="button" id="rRep">Reportar un problema</button>
       <a class="btn btn-g" href="#/">Ir al inicio</a></div>`;
+    const rr = PL.$('#rRep', fb); if (rr) rr.onclick = () => PL.report(o);
     const rh = PL.$('#rh', fb); if (rh) rh.onclick = () => PL.rehire(o.worker, svc.id, o.id);
     const ft = PL.$('#favT', fb); if (ft) ft.onclick = () => { if (PL.fav(o.worker.name)) { PL.delFav(o.worker.name); PL.toast('Quitado de Mis trabajadores'); } else { PL.addFav(o.worker); PL.toast(`${PL.short(o.worker.name)} está en Mis trabajadores`); } PL.render(); };
   }

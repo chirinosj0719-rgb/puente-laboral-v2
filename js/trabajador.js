@@ -12,7 +12,7 @@
     view.innerHTML = `<section class="w-hero"><div class="w-hero-in">
       <div class="rise"><span class="eti">Para quienes trabajan</span><h1>Trabaja <span class="k">a tu manera.</span></h1>
         <p class="sub">Recibe pedidos cerca de tu casa, acepta los que te convienen y cobra directo. Tu oficio, tus horarios.</p>
-        <a class="btn btn-a" href="#/registro" style="margin-top:20px">Crear mi perfil<span class="arr">${PL.ic('arrow')}</span></a></div>
+        <a class="btn btn-a" href="#/registro" style="margin-top:20px">Crear mi perfil<span class="arr">${PL.ic('arrow')}</span></a> <a class="btn btn-dl" href="${PL.S.biz ? '#/mi-empresa' : '#/empresa-registro'}" style="margin-top:20px">${PL.S.biz ? 'Mi empresa' : 'Tengo una empresa'}</a></div>
       <div class="bens">
         <div class="ben"><span class="ico">${PL.ic('bolt')}</span><div><b>Pedidos al toque</b><span>Te conectas cuando estás libre y aceptas lo que te queda cerca.</span></div></div>
         <div class="ben"><span class="ico">${PL.ic('cal')}</span><div><b>Agenda para otros días</b><span>Acepta trabajos programados y arma tu semana.</span></div></div>
@@ -21,7 +21,7 @@
       </div></div></section>
       <div class="wrap">
         <section class="sec"><div class="sec-h"><div><span class="eti">Para empezar</span><h2>Lo que <span class="k">necesitas</span></h2></div><p>El registro toma unos minutos. Revisamos tus datos antes de activar tu cuenta.</p></div>
-          <ol class="req-list"><li><span class="num">1</span><span>DNI vigente y ser mayor de 18 años</span></li><li><span class="num">2</span><span>Un celular con WhatsApp</span></li><li><span class="num">3</span><span>Certificado de antecedentes (puedes enviarlo después)</span></li><li><span class="num">4</span><span>Saber hacer bien tu oficio</span></li></ol></section>
+          <ol class="req-list"><li><span class="num">1</span><span>DNI vigente y ser mayor de 18 años</span></li><li><span class="num">2</span><span>Un celular</span></li><li><span class="num">3</span><span>Certificado de antecedentes (puedes enviarlo después)</span></li><li><span class="num">4</span><span>Saber hacer bien tu oficio</span></li></ol></section>
         <section class="sec" style="padding-top:0"><div class="sec-h"><div><span class="eti">Cómo funciona</span><h2>Así recibes <span class="k">trabajo</span></h2></div></div>
           <div class="how"><div class="how-i"><span class="num">1</span><h3>Conéctate o agenda</h3><p>Prende el botón para pedidos al toque, o acepta trabajos para otros días.</p></div><div class="how-i"><span class="num">2</span><h3>Acepta o contraoferta</h3><p>Ves el trabajo, la zona y el precio. Si no te conviene, propones otro.</p></div><div class="how-i"><span class="num">3</span><h3>Cobra y suma estrellas</h3><p>Terminas, cobras directo y el cliente te califica.</p></div></div></section>
       </div>${PL.footer()}`;
@@ -41,7 +41,7 @@
       () => `<h1>Tus <span class="k">datos</span></h1><p class="lead">Así te van a conocer los clientes. Tu DNI no se muestra a nadie.</p>
         <label class="field"><span>Nombre completo</span><input class="in" id="f-name" autocomplete="name" maxlength="60" value="${PL.esc(D.name)}"></label>
         <div class="row2"><label class="field"><span>DNI</span><input class="in" id="f-dni" inputmode="numeric" maxlength="8" autocomplete="off" value="${PL.esc(D.dni)}"></label><label class="field"><span>Edad</span><input class="in" id="f-age" type="number" inputmode="numeric" min="18" max="75" value="${PL.esc(D.age)}"></label></div>
-        <label class="field"><span>WhatsApp</span><input class="in" id="f-phone" type="tel" inputmode="numeric" maxlength="9" placeholder="9XXXXXXXX" autocomplete="tel" value="${PL.esc(D.phone)}"></label>`,
+        <label class="field"><span>Celular</span><input class="in" id="f-phone" type="tel" inputmode="numeric" maxlength="9" placeholder="9XXXXXXXX" autocomplete="tel" value="${PL.esc(D.phone)}"></label>`,
       () => `<h1>¿Qué <span class="k">sabes hacer?</span></h1><p class="lead">Elige hasta 5 oficios. Solo te llegarán pedidos de estos.</p>
         <div id="trades">${PL.CATS.map(c => `<div class="trade-g"><h3>${c.name}</h3><div class="chips">${PL.SVCS.filter(s => s.c === c.id && !s.other).map(s => `<button class="chip" type="button" data-s="${s.id}" aria-pressed="${D.trades.includes(s.id)}">${PL.esc(s.n)}</button>`).join('')}</div></div>`).join('')}</div>
         <label class="field"><span>Experiencia</span><select class="in" id="f-exp">${EXP.map(e => `<option${e === D.exp ? ' selected' : ''}>${e}</option>`).join('')}</select></label>`,
@@ -85,7 +85,7 @@
         if (D.name.split(/\s+/).length < 2) return err(n, 'Escribe tu nombre y apellido');
         if (!/^\d{8}$/.test(D.dni)) return err(d, 'El DNI tiene 8 dígitos');
         if (!(+D.age >= 18 && +D.age <= 75)) return err(a, 'Debes tener entre 18 y 75 años');
-        if (!/^9\d{8}$/.test(D.phone)) return err(p, 'El WhatsApp tiene 9 dígitos y empieza con 9');
+        if (!/^9\d{8}$/.test(D.phone)) return err(p, 'El celular tiene 9 dígitos y empieza con 9');
       }
       if (step === 2) { D.exp = PL.$('#f-exp', rb).value; if (!D.trades.length) { PL.toast('Elige al menos un oficio'); return false; } }
       if (step === 3) {
@@ -123,11 +123,9 @@
   }, {flow: true, tab: 'trabajar'});
 
   function sendDocs(fresh){
-    const w = PL.S.worker;
-    const text = `*Registro de trabajador*\nNombre: ${w.name}\nDNI: ${w.dni}\nEdad: ${w.age}\nWhatsApp: ${w.phone}\nVive en: ${w.district}\nTrabaja en: ${w.zones.join(', ')}\nOficios: ${w.trades.map(t => PL.svc(t).n).join(', ')}\nExperiencia: ${w.exp}\nDisponibilidad: ${w.avail.join(', ')}\nSobre mí: ${w.bio || '-'}\n\nAdjunto mi foto, la foto de mi DNI y mis antecedentes.`;
-    PL.sheet({title: fresh ? '¡Tu perfil está <span class="k">listo!</span>' : 'Verifica tu perfil',
-      body: `<p style="margin-bottom:10px">Para activarlo, envíanos tus documentos por WhatsApp. Los revisamos y te avisamos.</p><p class="muted">Mientras tanto puedes probar el panel en modo demo: conéctate y mira cómo llegan los pedidos.</p>`,
-      foot: `<a class="btn btn-a" target="_blank" rel="noopener" href="${PL.wa(text)}">${PL.ic('wa')} Enviar por WhatsApp</a>`});
+    PL.sheet({title: fresh ? '¡Tu perfil está <span class="k">listo!</span>' : 'Perfil en revisión',
+      body: `<p style="margin-bottom:10px">Revisamos tu foto, tu DNI y tus antecedentes, y te avisamos aquí cuando tu perfil esté activo.</p><p class="muted">Mientras tanto puedes probar el panel en modo demo: conéctate y mira cómo llegan los pedidos.</p>`,
+      foot: '<button class="btn btn-t" type="button" data-close>Entendido</button>'});
   }
 
   /* ——— panel del trabajador ——— */
@@ -229,7 +227,7 @@
       <div class="card"><span class="eti">${PL.ic('wallet')}Tus ganancias</span>
         <div class="bars" role="img" aria-label="Ganancias de los últimos 7 días">${days.map((x, i) => `<div><i class="${i === 6 ? 'today' : x.v ? 'on' : ''}" style="height:${Math.max(3, x.v / max * 100)}%" title="${PL.money(x.v)}"></i><span>${'DLMMJVS'[x.d.getDay()]}</span></div>`).join('')}</div>
         ${W.jobs.length ? `<ul class="jobs-l">${W.jobs.slice(-5).reverse().map(j => `<li><span>${PL.esc(PL.svc(j.svc).n)} · ${PL.esc(j.client)}</span><b>${PL.money(j.price)}</b></li>`).join('')}</ul>` : `<p class="muted">Aún no tienes ganancias. Conéctate y acepta tu primer trabajo.</p>`}</div>
-      ${W.status !== 'ok' ? `<div class="card yel"><b style="font:800 1.15rem var(--f-t)">Activa tu perfil</b><p style="margin:6px 0 12px">Envíanos tu foto, tu DNI y tus antecedentes para que los revisemos.</p><button class="btn btn-t btn-sm" type="button" id="docs">${PL.ic('wa')}Enviar documentos</button></div>` : ''}
+      ${W.status !== 'ok' ? `<div class="card yel"><b style="font-size:1.1rem;font-weight:600">Perfil en revisión</b><p style="margin-top:6px">Estamos revisando tu foto, tu DNI y tus antecedentes. Te avisamos aquí cuando esté activo.</p></div>` : ''}
       <div class="card"><div class="who">${PL.avatar(W.name, '#FFD86B')}<div><b>${PL.esc(W.name)}</b><span class="muted">${PL.esc(W.exp)} de experiencia</span></div></div>
         <div class="chips" style="margin:14px 0">${W.trades.map(t => `<span class="pill">${PL.esc(PL.svc(t).n)}</span>`).join('')}</div>
         <dl class="dl"><dt>Zonas</dt><dd>${PL.esc(W.zones.join(', '))}</dd><dt>Horario</dt><dd>${PL.esc(W.avail.join(', '))}</dd><dt>Clientes que repiten</dt><dd>${W.jobs.filter(j => j.direct).length}</dd></dl>

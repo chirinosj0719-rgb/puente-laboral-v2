@@ -1,10 +1,9 @@
 /* Puente Laboral · datos
-   Todo lo que cambia el negocio vive aquí: número de WhatsApp, catálogo,
+   Todo lo que cambia el negocio vive aquí: catálogo,
    precios referenciales y distritos. */
 window.PL = window.PL || {};
 
 PL.CFG = {
-  WA: '51938125533',          // WhatsApp de Puente Laboral (sin + ni espacios)
   SHEETS_URL: '',             // URL de Apps Script (/exec) para guardar registros y pedidos en Google Sheets
   STORE: 'puente-laboral-v2'  // clave de guardado en este dispositivo
 };
@@ -48,6 +47,7 @@ PL.SVCS = [
   {id:'ninera', n:'Niñera', c:'cuidado', i:'bebe', u:'hora', t:['Cuidar por horas','Recoger del colegio','Noche','Tareas escolares']},
   {id:'adulto', n:'Cuidado de adulto mayor', c:'cuidado', i:'cor', u:'dia', t:['Acompañamiento','Medicinas','Aseo personal','Noche']},
   {id:'enfermeria', n:'Enfermería a domicilio', c:'cuidado', i:'cruz', u:'visita', t:['Inyectables','Curaciones','Control de presión','Sonda']},
+  {id:'veterinaria', n:'Veterinaria a domicilio', c:'cuidado', i:'pata', u:'visita', t:['Consulta','Vacunas','Desparasitación','Emergencia']},
   {id:'paseador', n:'Paseador de perros', c:'cuidado', i:'pata', u:'paseo', t:['Paseo de 30 min','Paseo de 1 hora','Paseo diario']},
   {id:'mascotas', n:'Cuidador de mascotas', c:'cuidado', i:'pata', u:'dia', t:['Mientras viajo','Visitas diarias','Dar comida y medicinas']},
   {id:'grooming', n:'Baño y corte de mascotas', c:'cuidado', i:'pata', u:'servicio', t:['Baño','Corte','Corte de uñas']},

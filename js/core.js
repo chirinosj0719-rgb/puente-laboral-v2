@@ -70,6 +70,7 @@
   PL.go = h => { if (location.hash === h) PL.render(); else location.hash = h; };
   let first = true;
   PL.render = () => {
+    if (!PL.$('#view')) return;   /* la landing no usa rutas */
     leave();
     if (sheet.open) sheet.close();
     const raw = location.hash.replace(/^#\/?/, '');
@@ -79,7 +80,7 @@
     const r = PL.R[name];
     const view = PL.$('#view');
     document.body.toggleAttribute('data-flow', !!r.flow);
-    document.body.dataset.view = name || 'inicio';
+    document.body.dataset.view = r.dark ? 'trabajar' : (name || 'app');
     view.innerHTML = '';
     r.fn(view, parts.slice(1), new URLSearchParams(qs || ''));
     const tab = r.tab != null ? r.tab : name;
@@ -139,8 +140,7 @@
     });
   };
 
-  /* ——— WhatsApp y registro externo ——— */
-  PL.wa = (text, phone = C.WA) => `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
+  /* ——— registro externo (Google Sheets, si se configura) ——— */
   PL.toSheet = o => {
     if (!C.SHEETS_URL) return;
     try { fetch(C.SHEETS_URL, {method: 'POST', mode: 'no-cors', headers: {'Content-Type': 'text/plain;charset=utf-8'}, body: JSON.stringify(Object.assign({fecha: new Date().toISOString()}, o))}).catch(() => {}); } catch (e) {}
@@ -169,18 +169,45 @@
     const km = +PL.rnd(.6, 4.6).toFixed(1);
     return {name, color: PL.pick(PL.DEMO.colors), rating: +PL.rnd(4.5, 5).toFixed(1), jobs: PL.ri(8, 240), years: PL.ri(1, 14), km, eta: Math.round(km * 4 + PL.ri(3, 7)), bg: Math.random() > .3, phone: `9${PL.ri(10, 99)} *** ${PL.ri(100, 999)}`};
   };
-  PL.footer = () => `<footer class="foot"><div class="foot-in"><span>© 2026 Puente Laboral · Gente de confianza, cerca de ti. <span class="credit">Avatares 3D: Fluent Emoji de Microsoft (licencia MIT).</span></span><span><a href="#/trabajar">Quiero trabajar</a> · <a target="_blank" rel="noopener" href="${PL.wa('Hola, quiero más información sobre Puente Laboral.')}">WhatsApp</a></span></div><div class="foot-name" aria-hidden="true">Puente Laboral</div></footer>`;
+  PL.footer = () => `<footer class="foot"><div class="foot-in"><span>© 2026 Puente Laboral · Gente de confianza, cerca de ti. <span class="credit">Avatares 3D: Fluent Emoji de Microsoft (licencia MIT).</span></span><span>${PL.$('#view') ? '<a href="index.html">Qué es Puente Laboral</a> · <a href="#/trabajar">Quiero trabajar</a>' : '<a href="app.html">Abrir la app</a> · <a href="app.html#/trabajar">Quiero trabajar</a>'}</span></div><div class="foot-name" aria-hidden="true">Puente Laboral</div></footer>`;
 
   PL.demoInfo = () => PL.sheet({
     title: 'Estás viendo la demo',
-    body: `<p style="margin-bottom:12px">Así va a funcionar Puente Laboral. <b>Los trabajadores, las ofertas y las calificaciones que ves son de ejemplo</b>, y aquí no se cobra nada.</p><p class="muted" style="margin-bottom:12px">Tus pedidos y tu perfil se guardan solo en este dispositivo.</p><p class="muted">¿Necesitas a alguien de verdad hoy? Escríbenos y lo coordinamos por WhatsApp.</p>`,
-    foot: `<a class="btn btn-a" target="_blank" rel="noopener" href="${PL.wa('Hola, necesito un servicio: ')}">${PL.ic('wa')} Pedir por WhatsApp</a>`
+    body: `<p style="margin-bottom:12px">Así va a funcionar Puente Laboral. <b>Los trabajadores y las empresas que ves son de ejemplo</b>, y aquí no se cobra nada.</p><p class="muted">Tus pedidos y tu perfil se guardan solo en este dispositivo.</p>`,
+    foot: '<button class="btn btn-t" type="button" data-close>Entendido</button>'
   });
+
+  /* ——— ayuda dentro de la app (no hay atención por WhatsApp) ——— */
+  PL.report = o => {
+    PL.sheet({title: 'Reportar un problema',
+      body: `${o ? `<p class="muted" style="margin-bottom:12px">Pedido: ${PL.esc(PL.svc(o.svc).n)}${o.worker ? ' con ' + PL.esc(o.worker.name) : ''}</p>` : ''}<div class="chips" id="rpT" style="margin-bottom:14px">${['No llegó', 'Llegó tarde', 'Trabajo mal hecho', 'Cobro distinto', 'Mal trato', 'Otro'].map(t => `<button class="chip" type="button" aria-pressed="false">${t}</button>`).join('')}</div><label class="field"><span>Cuéntanos qué pasó</span><textarea class="in" id="rpX" maxlength="600" placeholder="Describe el problema con detalle"></textarea></label>`,
+      foot: `<button class="btn btn-l" type="button" data-close>Cancelar</button><button class="btn btn-t" type="button" id="rpOk">Enviar reporte</button>`,
+      onOpen: s => {
+        const tags = [];
+        s.querySelector('#rpT').onclick = e => { const b = e.target.closest('.chip'); if (!b) return; const on = b.getAttribute('aria-pressed') !== 'true'; b.setAttribute('aria-pressed', on); const t = b.textContent; if (on) tags.push(t); else tags.splice(tags.indexOf(t), 1); };
+        s.querySelector('#rpOk').onclick = () => {
+          const x = s.querySelector('#rpX').value.trim();
+          if (!x && !tags.length) { PL.toast('Cuéntanos qué pasó'); return; }
+          (PL.S.reports = PL.S.reports || []).push({at: Date.now(), order: o ? o.id : null, tags, text: x}); PL.save();
+          PL.toSheet({tipo: 'reporte', pedido: o ? o.id : '', motivo: tags.join(', '), detalle: x});
+          PL.closeSheet(); PL.toast('Gracias. Tu reporte quedó registrado.', 3200);
+        };
+      }});
+  };
+  PL.helpCenter = () => PL.sheet({title: '¿Necesitas ayuda?',
+    body: `<div class="list">
+      <a href="tel:105">${PL.ic('alert')}<span>Emergencia<span class="sub">Llamar a la Policía (105)</span></span>${PL.ic('chev', 'i chev')}</a>
+      <a href="${PL.$('#view') ? '' : 'app.html'}#/pedidos" data-close>${PL.ic('list')}<span>Un problema con un pedido<span class="sub">Ábrelo y usa el botón Ayuda</span></span>${PL.ic('chev', 'i chev')}</a>
+      <button type="button" id="hcRep">${PL.ic('chat')}<span>Reportar un problema<span class="sub">Cuéntanos qué pasó</span></span>${PL.ic('chev', 'i chev')}</button>
+      <a href="${PL.$('#view') ? '' : 'app.html'}#/cuenta" data-close>${PL.ic('help')}<span>Preguntas frecuentes<span class="sub">Pagos, verificación y seguridad</span></span>${PL.ic('chev', 'i chev')}</a></div>`,
+    onOpen: s => { s.querySelector('#hcRep').onclick = () => PL.report(); }});
+
 
   /* ——— arranque ——— */
   PL.$$('.ti[data-i]').forEach(s => { s.innerHTML = PL.ic(s.dataset.i); });
-  PL.$('#helpTop').href = PL.wa('Hola, necesito ayuda con Puente Laboral.');
-  PL.$('#demoPill').onclick = PL.demoInfo;
+  const helpTop = PL.$('#helpTop'), demoPill = PL.$('#demoPill');
+  if (helpTop) helpTop.onclick = e => { e.preventDefault(); PL.helpCenter(); };
+  if (demoPill) demoPill.onclick = PL.demoInfo;
   const onScroll = () => document.body.classList.toggle('scrolled', window.scrollY > 40);
   window.addEventListener('scroll', onScroll, {passive: true}); onScroll();
   window.addEventListener('hashchange', PL.render);
