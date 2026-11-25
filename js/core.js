@@ -169,7 +169,7 @@
     const km = +PL.rnd(.6, 4.6).toFixed(1);
     return {name, color: PL.pick(PL.DEMO.colors), rating: +PL.rnd(4.5, 5).toFixed(1), jobs: PL.ri(8, 240), years: PL.ri(1, 14), km, eta: Math.round(km * 4 + PL.ri(3, 7)), bg: Math.random() > .3, phone: `9${PL.ri(10, 99)} *** ${PL.ri(100, 999)}`};
   };
-  PL.footer = () => `<footer class="foot"><div class="foot-in"><span>© 2026 Puente Laboral · Gente de confianza, cerca de ti. <span class="credit">Avatares 3D: Fluent Emoji de Microsoft (licencia MIT).</span></span><span>${PL.$('#view') ? '<a href="index.html">Qué es Puente Laboral</a> · <a href="#/trabajar">Quiero trabajar</a>' : '<a href="app.html">Abrir la app</a> · <a href="app.html#/trabajar">Quiero trabajar</a>'}</span></div><div class="foot-name" aria-hidden="true">Puente Laboral</div></footer>`;
+  PL.footer = () => `<footer class="foot"><div class="foot-in"><span>© 2026 Puente Laboral</span><span>${PL.$('#view') ? '<a href="index.html">Qué es Puente Laboral</a> · <a href="#/trabajar">Quiero trabajar</a>' : '<a href="app.html">Abrir la app</a> · <a href="app.html#/trabajar">Quiero trabajar</a>'}</span></div><div class="foot-name" aria-hidden="true">Puente Laboral</div></footer>`;
 
   PL.demoInfo = () => PL.sheet({
     title: 'Estás viendo la demo',

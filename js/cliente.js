@@ -29,7 +29,7 @@
     return `<div class="fav"><div class="top-r">${PL.avatar(f.name, f.color, 's')}<div><b>${PL.esc(PL.short(f.name))}</b><span>${PL.esc(sv.slice(0, 2).join(', ') || 'De confianza')}</span></div><span class="heart" aria-hidden="true">${PL.ic('heart')}</span></div><button class="btn btn-t btn-sm" type="button" data-rehire="${PL.esc(f.name)}">Volver a pedir</button></div>`;
   }
 
-  /* volver a contratar a la misma persona: al toque o programado */
+  /* volver a contratar a la misma persona: inmediato o programado */
   PL.rehire = (w, svcId, reId) => {
     if (!PL.fav(w.name)) PL.addFav(w);
     const f = PL.fav(w.name), list = favSvcs(f.name);
@@ -38,7 +38,7 @@
     PL.sheet({title: `Volver a pedir a <span class="k">${PL.esc(first)}</span>`,
       body: `<div class="direct">${PL.avatar(f.name, f.color)}<div><b>${PL.esc(f.name)}</b><span>Ya trabajó contigo</span></div><span class="heart" aria-hidden="true">${PL.ic('heart')}</span></div>
         ${list.length > 1 ? `<p class="blk-t">¿Qué servicio?</p><div class="chips" id="rs">${list.map(id => `<button class="chip" type="button" data-s="${id}" aria-pressed="${id === sel}">${PL.esc(PL.svc(id).n)}</button>`).join('')}</div><p class="blk-t">¿Cuándo?</p>` : ''}
-        <div class="rehire"><button class="ya" type="button" data-m="ya"><span class="ic">${PL.ic('bolt')}</span><span><b>Al toque</b><span>Que vaya hoy, apenas pueda</span></span></button><button class="prog" type="button" data-m="prog"><span class="ic">${PL.ic('cal')}</span><span><b>Programar</b><span>Eliges día y hora, una vez o cada semana</span></span></button></div>
+        <div class="rehire"><button class="ya" type="button" data-m="ya"><span class="ic">${PL.ic('bolt')}</span><span><b>Inmediato</b><span>Hoy, lo antes posible</span></span></button><button class="prog" type="button" data-m="prog"><span class="ic">${PL.ic('cal')}</span><span><b>Programado</b><span>Elige día y hora</span></span></button></div>
         <p class="muted" style="font-size:.88rem;margin-top:12px">Le llega primero a ${PL.esc(first)}. Si no puede, te avisamos.</p>`,
       foot: `<button class="btn btn-l" type="button" id="rchat">${PL.ic('chat')}Escribirle</button>`,
       onOpen: s => {
@@ -66,21 +66,21 @@
         <div class="search-box">${PL.ic('search')}<input id="hq" type="search" placeholder="Busca: gasfitero, niñera, chofer…" aria-label="Buscar un servicio" autocomplete="off"></div>
       </div>
       <div class="mode-pick" role="group" aria-label="Cómo lo necesitas">
-        <button class="mp ya" type="button" data-mode="ya"><span class="mi">${PL.ic('bolt')}</span><span><b>Al toque</b><span>Alguien va ahora, en minutos</span></span></button>
-        <button class="mp prog" type="button" data-mode="prog"><span class="mi">${PL.ic('cal')}</span><span><b>Programado</b><span>Eliges día y hora, una vez o repetido</span></span></button>
+        <button class="mp ya" type="button" data-mode="ya"><span class="mi">${PL.ic('bolt')}</span><span><b>Inmediato</b><span>Atención en minutos</span></span></button>
+        <button class="mp prog" type="button" data-mode="prog"><span class="mi">${PL.ic('cal')}</span><span><b>Programado</b><span>Elige día y hora</span></span></button>
       </div>
     </div></section>
     <div class="wrap">
       ${act ? live(act) : ''}
       ${S.favs.length ? `<section class="favs-sec"><div class="favs-h"><div><span class="eti">${PL.ic('heart')}Mis trabajadores</span><h2>Vuelve a llamar a quien te gustó</h2></div><a href="#/equipo">Ver todos</a></div><div class="favs" id="favs">${S.favs.map(favCard).join('')}</div></section>` : ''}
       <section class="app-cat" id="servicios">
-        <div class="app-cat-h"><h2>Servicios</h2><p class="mode-note" id="mnote"></p></div>
+        <div class="app-cat-h"><h2>Servicios</h2></div>
         <div class="cat-rail" id="rail" role="group" aria-label="Filtrar por categoría"></div>
         <p class="muted" id="resTxt" hidden style="margin:0 0 14px"></p>
         <div class="svc-grid" id="grid"></div>
       </section>
       <section class="sec" id="empresas">
-        <div class="sec-h"><span class="eti">${PL.ic('bag')}Empresas</span><h2>Empresas con su <span class="k">equipo</span></h2><p>Choferes, veterinarias, limpieza, mudanzas, seguridad y eventos. Escríbeles o pídeles directo.</p></div>
+        <div class="sec-h"><span class="eti">${PL.ic('bag')}Empresas</span><h2>Empresas</h2></div>
         <div class="ords">${PL.bizList().slice(0, 4).map(PL.bizRow).join('')}</div>
         <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:22px"><a class="btn btn-t" href="#/empresas">Ver todas las empresas<span class="arr">${PL.ic('arrow')}</span></a><a class="btn btn-l" href="#/empresa-registro">Registrar mi empresa</a></div>
       </section>
@@ -92,14 +92,12 @@
     const cats = [{id: 'todos', name: 'Todos'}].concat(PL.CATS);
     function drawMode(){
       PL.$$('[data-mode]', view).forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === PL.mode));
-      PL.$('#mnote', view).textContent = PL.mode === 'ya' ? 'Al toque: gente que puede ir ahora. Eventos y clases están en Programado.' : 'Programado: eliges día y hora con anticipación.';
     }
     function drawRail(){ rail.innerHTML = cats.map(c => `<button class="chip" type="button" data-c="${c.id}" aria-pressed="${c.id === cat}">${c.name}</button>`).join(''); }
     function draw(){
       const nq = PL.norm(q.trim());
       const list = PL.SVCS.filter(s => (nq || PL.mode === 'prog' || PL.canNow(s)) && (cat === 'todos' || s.c === cat || s.other) && (!nq || PL.norm(s.n + ' ' + s.t.join(' ') + ' ' + PL.cat(s.c).name).includes(nq)));
-      res.hidden = !nq;
-      res.textContent = nq && list.length ? `${list.length} ${list.length === 1 ? 'resultado' : 'resultados'} para “${q.trim()}”` : '';
+      res.hidden = true;
       grid.innerHTML = list.length ? list.map(s => tile(s, PL.mode)).join('') :
         `<div class="svc-empty empty"><svg class="big si" viewBox="0 0 48 48" aria-hidden="true">${PL.SI.otr}</svg><h3>No encontramos “${PL.esc(q.trim())}”</h3><p>Pídelo igual: lo describes y te llegan ofertas.</p><a class="btn btn-t" href="#/pedir/otro?m=${PL.mode}&d=${encodeURIComponent(q.trim())}">Pedir “${PL.esc(q.trim())}”</a></div>`;
     }
@@ -124,15 +122,15 @@
     const past = all.filter(o => !PL.ACTIVE.includes(o.status));
     let tab = qs.get('t') || (act.length ? 'act' : prox.length ? 'prox' : 'past');
     view.innerHTML = `<div class="wrap"><div class="page-h"><span class="eti">${PL.ic('list')}Tus pedidos</span><h1>Mis pedidos</h1>
-      <div class="seg" style="width:min(100%,460px)" role="group" aria-label="Filtrar pedidos"><button type="button" data-t="act">En curso · ${act.length}</button><button type="button" data-t="prox">Próximos · ${prox.length}</button><button type="button" data-t="past">Historial</button></div></div>
-      <div class="ords"><a class="ord" href="#/equipo"><span class="svc-ic" style="background:var(--acc-3);color:var(--acc)">${PL.ic('heart')}</span><div class="ord-i"><b>Mis trabajadores</b><span>${PL.S.favs.length ? PL.S.favs.length + ' de confianza · pídeles directo' : 'Guarda a quien te gustó para volver a llamarle'}</span></div>${PL.ic('chev', 'i chev')}</a></div>
+      <div class="seg" style="width:min(100%,460px)" role="group" aria-label="Filtrar pedidos"><button type="button" data-t="act">En curso</button><button type="button" data-t="prox">Próximos</button><button type="button" data-t="past">Historial</button></div></div>
+      <div class="ords"><a class="ord" href="#/equipo"><span class="svc-ic" style="background:var(--acc-3);color:var(--acc)">${PL.ic('heart')}</span><div class="ord-i"><b>Mis trabajadores</b><span>Quienes te gustaron, para pedirles directo</span></div>${PL.ic('chev', 'i chev')}</a></div>
       <div id="ol"></div></div>${PL.footer()}`;
     const ol = PL.$('#ol', view);
     function card(o){
       const svc = PL.svc(o.svc);
-      return `<a class="ord" href="#/pedido/${o.id}"><span class="svc-ic">${PL.si(svc.i)}</span><div class="ord-i"><b>${PL.esc(svc.n)}</b><span>${o.mode === 'prog' ? PL.esc(PL.whenText(o.when)) : 'Al toque'}${o.repeat && o.repeat !== 'no' ? ' · ' + PL.REPEAT[o.repeat].toLowerCase() : ''} · ${PL.esc(o.district)}</span><span>${o.worker ? PL.esc(PL.short(o.worker.name)) + (o.people > 1 ? ' y equipo' : '') : o.direct ? 'Esperando a ' + PL.esc(PL.short(o.direct)) : 'Sin asignar'}</span></div><div class="ord-r"><b>${PL.money(PL.total(o))}</b>${PL.stPill(o)}</div></a>`;
+      return `<a class="ord" href="#/pedido/${o.id}"><span class="svc-ic">${PL.si(svc.i)}</span><div class="ord-i"><b>${PL.esc(svc.n)}</b><span>${o.mode === 'prog' ? PL.esc(PL.whenText(o.when)) : 'Inmediato'}${o.repeat && o.repeat !== 'no' ? ' · ' + PL.REPEAT[o.repeat].toLowerCase() : ''} · ${PL.esc(o.district)}</span><span>${o.worker ? PL.esc(PL.short(o.worker.name)) + (o.people > 1 ? ' y equipo' : '') : o.direct ? 'Esperando a ' + PL.esc(PL.short(o.direct)) : 'Sin asignar'}</span></div><div class="ord-r"><b>${PL.money(PL.total(o))}</b>${PL.stPill(o)}</div></a>`;
     }
-    const EMPTY = {act: ['No tienes nada en curso', 'Lo que pidas al toque lo sigues desde aquí.'], prox: ['No tienes pedidos programados', 'Programa una limpieza, un evento o una clase con anticipación.'], past: ['Aún no hay historial', 'Aquí quedan tus pedidos terminados.']};
+    const EMPTY = {act: ['No tienes nada en curso', 'Aquí sigues tus solicitudes inmediatas.'], prox: ['No tienes pedidos programados', 'Programa una limpieza, un evento o una clase con anticipación.'], past: ['Aún no hay historial', 'Aquí quedan tus pedidos terminados.']};
     function draw(){
       PL.$$('[data-t]', view).forEach(b => b.setAttribute('aria-pressed', b.dataset.t === tab));
       const l = {act, prox, past}[tab];
@@ -147,7 +145,7 @@
   /* ——— mis trabajadores ——— */
   PL.route('equipo', view => {
     const favs = PL.S.favs;
-    view.innerHTML = `<div class="wrap"><div class="page-h"><span class="eti">${PL.ic('heart')}Mis trabajadores</span><h1>Gente de <span class="k">confianza</span></h1><p>Quienes te dieron un buen servicio. Pídeles directo, al toque o para otro día.</p></div>
+    view.innerHTML = `<div class="wrap"><div class="page-h"><span class="eti">${PL.ic('heart')}Mis trabajadores</span><h1>Gente de <span class="k">confianza</span></h1><p>Quienes te dieron un buen servicio. Solicítales directamente, de inmediato o con anticipación.</p></div>
       <div id="tl"></div></div>${PL.footer()}`;
     const tl = PL.$('#tl', view);
     function draw(){

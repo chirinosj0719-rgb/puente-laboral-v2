@@ -14,7 +14,7 @@
         <p class="sub">Recibe pedidos cerca de tu casa, acepta los que te convienen y cobra directo. Tu oficio, tus horarios.</p>
         <a class="btn btn-a" href="#/registro" style="margin-top:20px">Crear mi perfil<span class="arr">${PL.ic('arrow')}</span></a> <a class="btn btn-dl" href="${PL.S.biz ? '#/mi-empresa' : '#/empresa-registro'}" style="margin-top:20px">${PL.S.biz ? 'Mi empresa' : 'Tengo una empresa'}</a></div>
       <div class="bens">
-        <div class="ben"><span class="ico">${PL.ic('bolt')}</span><div><b>Pedidos al toque</b><span>Te conectas cuando estás libre y aceptas lo que te queda cerca.</span></div></div>
+        <div class="ben"><span class="ico">${PL.ic('bolt')}</span><div><b>Solicitudes inmediatas</b><span>Te conectas cuando estás disponible y aceptas las que te quedan cerca.</span></div></div>
         <div class="ben"><span class="ico">${PL.ic('cal')}</span><div><b>Agenda para otros días</b><span>Acepta trabajos programados y arma tu semana.</span></div></div>
         <div class="ben"><span class="ico">${PL.ic('wallet')}</span><div><b>Cobras directo</b><span>Efectivo, Yape o Plin, al terminar.</span></div></div>
         <div class="ben"><span class="ico">${PL.ic('heart')}</span><div><b>Clientes que vuelven</b><span>Si les gustó tu trabajo, te piden directo otra vez.</span></div></div>
@@ -23,7 +23,7 @@
         <section class="sec"><div class="sec-h"><div><span class="eti">Para empezar</span><h2>Lo que <span class="k">necesitas</span></h2></div><p>El registro toma unos minutos. Revisamos tus datos antes de activar tu cuenta.</p></div>
           <ol class="req-list"><li><span class="num">1</span><span>DNI vigente y ser mayor de 18 años</span></li><li><span class="num">2</span><span>Un celular</span></li><li><span class="num">3</span><span>Certificado de antecedentes (puedes enviarlo después)</span></li><li><span class="num">4</span><span>Saber hacer bien tu oficio</span></li></ol></section>
         <section class="sec" style="padding-top:0"><div class="sec-h"><div><span class="eti">Cómo funciona</span><h2>Así recibes <span class="k">trabajo</span></h2></div></div>
-          <div class="how"><div class="how-i"><span class="num">1</span><h3>Conéctate o agenda</h3><p>Prende el botón para pedidos al toque, o acepta trabajos para otros días.</p></div><div class="how-i"><span class="num">2</span><h3>Acepta o contraoferta</h3><p>Ves el trabajo, la zona y el precio. Si no te conviene, propones otro.</p></div><div class="how-i"><span class="num">3</span><h3>Cobra y suma estrellas</h3><p>Terminas, cobras directo y el cliente te califica.</p></div></div></section>
+          <div class="how"><div class="how-i"><span class="num">1</span><h3>Conéctate o agenda</h3><p>Actívate para recibir solicitudes inmediatas o acepta trabajos programados.</p></div><div class="how-i"><span class="num">2</span><h3>Acepta o contraoferta</h3><p>Ves el trabajo, la zona y el precio. Si no te conviene, propones otro.</p></div><div class="how-i"><span class="num">3</span><h3>Cobra y suma estrellas</h3><p>Terminas, cobras directo y el cliente te califica.</p></div></div></section>
       </div>${PL.footer()}`;
   }
 
@@ -39,9 +39,10 @@
 
     const STEPS = [null,
       () => `<h1>Tus <span class="k">datos</span></h1><p class="lead">Así te van a conocer los clientes. Tu DNI no se muestra a nadie.</p>
+        <div class="field"><span>Celular</span><div class="vrow"><input class="in" id="f-phone" type="tel" inputmode="numeric" maxlength="9" placeholder="9XXXXXXXX" autocomplete="tel" value="${PL.esc(D.phone)}"${D.phoneOk ? ' readonly' : ''}><button class="btn ${D.phoneOk ? 'btn-v' : 'btn-t'}" type="button" id="f-send"${D.phoneOk ? ' disabled' : ''}>${D.phoneOk ? PL.ic('check') + 'Verificado' : 'Enviar código'}</button></div></div>
+        <div class="otp" id="otp" hidden><p>Escribe el código de 4 dígitos que te enviamos por SMS.</p><div class="pin-in">${[0, 1, 2, 3].map(i => `<input inputmode="numeric" maxlength="1" aria-label="Dígito ${i + 1}" data-o="${i}">`).join('')}</div></div>
         <label class="field"><span>Nombre completo</span><input class="in" id="f-name" autocomplete="name" maxlength="60" value="${PL.esc(D.name)}"></label>
-        <div class="row2"><label class="field"><span>DNI</span><input class="in" id="f-dni" inputmode="numeric" maxlength="8" autocomplete="off" value="${PL.esc(D.dni)}"></label><label class="field"><span>Edad</span><input class="in" id="f-age" type="number" inputmode="numeric" min="18" max="75" value="${PL.esc(D.age)}"></label></div>
-        <label class="field"><span>Celular</span><input class="in" id="f-phone" type="tel" inputmode="numeric" maxlength="9" placeholder="9XXXXXXXX" autocomplete="tel" value="${PL.esc(D.phone)}"></label>`,
+        <div class="row2"><label class="field"><span>DNI</span><input class="in" id="f-dni" inputmode="numeric" maxlength="8" autocomplete="off" value="${PL.esc(D.dni)}"></label><label class="field"><span>Edad</span><input class="in" id="f-age" type="number" inputmode="numeric" min="18" max="75" value="${PL.esc(D.age)}"></label></div>`,
       () => `<h1>¿Qué <span class="k">sabes hacer?</span></h1><p class="lead">Elige hasta 5 oficios. Solo te llegarán pedidos de estos.</p>
         <div id="trades">${PL.CATS.map(c => `<div class="trade-g"><h3>${c.name}</h3><div class="chips">${PL.SVCS.filter(s => s.c === c.id && !s.other).map(s => `<button class="chip" type="button" data-s="${s.id}" aria-pressed="${D.trades.includes(s.id)}">${PL.esc(s.n)}</button>`).join('')}</div></div>`).join('')}</div>
         <label class="field"><span>Experiencia</span><select class="in" id="f-exp">${EXP.map(e => `<option${e === D.exp ? ' selected' : ''}>${e}</option>`).join('')}</select></label>`,
@@ -50,15 +51,30 @@
         <p class="blk-t">Distritos donde puedes trabajar</p><div class="chips" id="zones"></div>
         <p class="blk-t">¿Cuándo puedes trabajar?</p><div class="chips" id="avail">${AVAIL.map(a => `<button class="chip" type="button" aria-pressed="${D.avail.includes(a)}">${a}</button>`).join('')}</div>`,
       () => `<h1>Verifica tu <span class="k">perfil</span></h1><p class="lead">Con esto los clientes te abren la puerta con confianza.</p>
-        <div class="up-row">${[['photo', 'Foto de tu cara', 'cam'], ['dniF', 'Foto de tu DNI', 'id'], ['ant', 'Antecedentes (opcional)', 'shield']].map(u => `<label class="photo-add"><input type="file" accept="image/*,application/pdf" data-doc="${u[0]}"><span class="ph">${D.docs[u[0]] ? PL.ic('check') : PL.ic(u[2])}</span><span>${u[1]}${D.docs[u[0]] ? '<br><span class="muted">Listo</span>' : ''}</span></label>`).join('')}</div>
+        <div class="docs">${docList().map(([k, label, ic, req, sub]) => `<label class="doc"><input type="file" accept="image/*,application/pdf" data-doc="${k}"><span class="ico">${PL.ic(D.docs[k] ? 'check' : ic)}</span><span class="tx"><b>${label}</b><span>${sub}</span></span><span class="pill ${D.docs[k] ? 'v' : req ? 'a' : 'o'}">${D.docs[k] ? 'Enviado' : req ? 'Requerido' : 'Opcional'}</span></label>`).join('')}</div>
         <label class="field" style="margin-top:16px"><span>Cuéntales sobre ti <em>(opcional)</em></span><textarea class="in" id="f-bio" maxlength="300" placeholder="Ej.: gasfitero hace 8 años, llevo mis herramientas, trabajo limpio.">${PL.esc(D.bio)}</textarea></label>
         <label class="check"><input type="checkbox" id="c1"${W ? ' checked' : ''}><span>Confirmo que soy mayor de 18 años y que mis datos son reales.</span></label>
-        <label class="check"><input type="checkbox" id="c2"${W ? ' checked' : ''}><span>Autorizo a Puente Laboral a verificar mi identidad y mostrar mi perfil a clientes.</span></label>
-        <p class="muted" style="font-size:.86rem;margin-top:8px">En la demo los archivos no se suben: se quedan en tu teléfono.</p>`
+        <label class="check"><input type="checkbox" id="c2"${W ? ' checked' : ''}><span>Autorizo a Puente Laboral a verificar mi identidad y mostrar mi perfil a clientes.</span></label>`
     ];
-    const NAMES = ['', 'Paso 1 de 4 · Datos', 'Paso 2 de 4 · Oficios', 'Paso 3 de 4 · Zona y horario', 'Paso 4 de 4 · Verificación'];
+    const NAMES = ['', 'Tus datos', 'Tus oficios', 'Zona y horario', 'Documentos'];
+    const docList = () => [['photo', 'Foto de perfil', 'cam', true, 'Una foto clara de tu cara'], ['dniF', 'DNI (frente y reverso)', 'id', true, 'Vigente'], ['ant', 'Certificado de antecedentes', 'shield', false, 'Puedes subirlo después']]
+      .concat(D.trades.some(t => ['chofer', 'motorizado', 'mudanza'].includes(t)) ? [['lic', 'Licencia de conducir', 'id', true, 'Vigente, para tu oficio']] : []);
 
     function bind(){
+      if (step === 1 && !D.phoneOk) {
+        const otp = PL.$('#otp', rb), ins = PL.$$('[data-o]', rb);
+        PL.$('#f-send', rb).onclick = () => {
+          const ph = PL.$('#f-phone', rb).value.trim();
+          if (!/^9\d{8}$/.test(ph)) { PL.toast('El celular tiene 9 dígitos y empieza con 9'); return; }
+          D.phone = ph; D.code = String(PL.ri(1000, 9999)); otp.hidden = false; ins[0].focus();
+          PL.toast(`SMS de Puente: tu código es ${D.code}`, 6000);
+        };
+        ins.forEach((x, i) => x.oninput = () => {
+          x.value = x.value.replace(/\D/g, ''); if (x.value && ins[i + 1]) ins[i + 1].focus();
+          const v = ins.map(y => y.value).join('');
+          if (v.length === 4) { if (v === D.code) { collect1(); D.phoneOk = true; draw(); PL.toast('Celular verificado'); } else { PL.toast('Código incorrecto'); ins.forEach(y => { y.value = ''; }); ins[0].focus(); } }
+        });
+      }
       if (step === 2) PL.$('#trades', rb).onclick = e => {
         const b = e.target.closest('[data-s]'); if (!b) return;
         const id = b.dataset.s, on = !D.trades.includes(id);
@@ -78,10 +94,12 @@
       }
       if (step === 4) rb.querySelectorAll('[data-doc]').forEach(inp => inp.onchange = () => { if (inp.files[0]) { D.docs[inp.dataset.doc] = true; draw(); } });
     }
+    function collect1(){ const v = id => (PL.$(id, rb) || {}).value || ''; D.name = v('#f-name').trim(); D.dni = v('#f-dni').trim(); D.age = v('#f-age').trim(); }
     function check(){
       if (step === 1) {
         const n = PL.$('#f-name', rb), d = PL.$('#f-dni', rb), a = PL.$('#f-age', rb), p = PL.$('#f-phone', rb);
         D.name = n.value.trim(); D.dni = d.value.trim(); D.age = a.value.trim(); D.phone = p.value.trim();
+        if (!D.phoneOk) { PL.toast('Verifica tu celular con el código'); return false; }
         if (D.name.split(/\s+/).length < 2) return err(n, 'Escribe tu nombre y apellido');
         if (!/^\d{8}$/.test(D.dni)) return err(d, 'El DNI tiene 8 dígitos');
         if (!(+D.age >= 18 && +D.age <= 75)) return err(a, 'Debes tener entre 18 y 75 años');
@@ -95,7 +113,8 @@
       }
       if (step === 4) {
         D.bio = PL.$('#f-bio', rb).value.trim();
-        if (!D.docs.photo || !D.docs.dniF) { PL.toast('Agrega tu foto y la foto de tu DNI'); return false; }
+        const falta = docList().filter(d => d[3] && !D.docs[d[0]]);
+        if (falta.length) { PL.toast(`Falta: ${falta.map(d => d[1]).join(', ')}`); return false; }
         if (!PL.$('#c1', rb).checked || !PL.$('#c2', rb).checked) { PL.toast('Marca las dos casillas para terminar'); return false; }
       }
       return true;
@@ -112,7 +131,7 @@
       if (!check()) return;
       if (step < 4) { step++; draw(); window.scrollTo(0, 0); return; }
       const isNew = !W;
-      S.worker = Object.assign(W || {status: 'revision', online: false, jobs: [], active: null, createdAt: Date.now()}, {name: D.name, dni: D.dni, age: D.age, phone: D.phone, district: D.district, zones: D.zones, trades: D.trades, exp: D.exp, avail: D.avail, bio: D.bio, docs: D.docs});
+      S.worker = Object.assign(W || {status: 'revision', online: false, jobs: [], active: null, createdAt: Date.now()}, {name: D.name, dni: D.dni, age: D.age, phone: D.phone, phoneOk: true, district: D.district, zones: D.zones, trades: D.trades, exp: D.exp, avail: D.avail, bio: D.bio, docs: D.docs});
       PL.save();
       PL.toSheet({tipo: 'trabajador', nombre: D.name, dni: D.dni, edad: D.age, wa: D.phone, distrito: D.district, zonas: D.zones.join(', '), oficios: D.trades.map(t => PL.svc(t).n).join(', '), experiencia: D.exp, disponibilidad: D.avail.join(', '), sobre: D.bio});
       PL.go('#/trabajar');
@@ -124,34 +143,39 @@
 
   function sendDocs(fresh){
     PL.sheet({title: fresh ? '¡Tu perfil está <span class="k">listo!</span>' : 'Perfil en revisión',
-      body: `<p style="margin-bottom:10px">Revisamos tu foto, tu DNI y tus antecedentes, y te avisamos aquí cuando tu perfil esté activo.</p><p class="muted">Mientras tanto puedes probar el panel en modo demo: conéctate y mira cómo llegan los pedidos.</p>`,
+      body: `<p style="margin-bottom:10px">Revisamos tu foto, tu DNI y tus antecedentes, y te avisamos aquí cuando tu perfil esté activo.</p><p class="muted">Mientras tanto puedes conocer el panel: conéctate y mira cómo llegan las solicitudes.</p>`,
       foot: '<button class="btn btn-t" type="button" data-close>Entendido</button>'});
   }
 
   /* ——— panel del trabajador ——— */
   function dash(view){
     const S = PL.S, W = S.worker;
+    document.body.dataset.view = 'panel';
     const now = new Date(), day0 = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-    const sum = from => W.jobs.filter(j => j.at >= from).reduce((a, j) => a + j.price, 0);
-    const today = sum(day0), week = sum(day0 - 6 * 864e5), todayN = W.jobs.filter(j => j.at >= day0).length;
-    view.innerHTML = `<section class="w-hero"><div class="w-hero-in">
-      <div><span class="eti">${W.status === 'ok' ? 'Perfil verificado' : 'Perfil en revisión'}</span><h1>Hola, <span class="k">${PL.esc(first(W.name))}</span></h1>
-        <p class="sub">${W.trades.map(t => PL.svc(t).n).join(' · ')}</p>
-        <button class="power" type="button" id="pw" aria-pressed="${!!W.online}"><span class="tx"><b>${W.online ? 'Conectado' : 'Desconectado'}</b><span>${W.online ? 'Recibiendo pedidos en ' + PL.esc(W.zones.slice(0, 2).join(', ')) + (W.zones.length > 2 ? '…' : '') : 'Toca para recibir pedidos'}</span></span><span class="knob" aria-hidden="true"></span></button></div>
-      <div class="w-stats"><div class="w-stat"><b>${PL.money(today)}</b><span>Hoy</span></div><div class="w-stat"><b>${PL.money(week)}</b><span>7 días</span></div><div class="w-stat"><b>${todayN}</b><span>Trabajos hoy</span></div></div>
-    </div></section>
-    <div class="wrap"><div class="w-grid"><div class="w-col" id="feedCol"><div id="active"></div><div id="feed" aria-live="polite"></div></div><div class="w-col" id="side"></div></div></div>${PL.footer()}`;
-    PL.$('#pw', view).onclick = () => { W.online = !W.online; PL.save(); PL.toast(W.online ? 'Estás conectado. Te avisamos cuando llegue un pedido.' : 'Te desconectaste'); dash(view); };
+    const today = W.jobs.filter(j => j.at >= day0).reduce((a, j) => a + j.price, 0);
+    view.innerHTML = `<section class="drv${W.online ? ' on' : ''}">
+      <div class="drv-map" id="dmap"></div>
+      <div class="drv-top"><span class="drv-chip">${PL.avatar(W.name, '#FFE3D4', 's')}${PL.esc(first(W.name))}</span><span class="drv-earn"><small>Hoy</small><b>${PL.money(today)}</b></span><span class="drv-chip ${W.status === 'ok' ? 'ok' : ''}">${PL.ic(W.status === 'ok' ? 'check' : 'clock')}${W.status === 'ok' ? 'Verificado' : 'En revisión'}</span></div>
+      <div class="drv-bottom"><div id="active"></div><div id="feed" aria-live="polite"></div></div>
+    </section>
+    <div class="wrap"><div class="w-grid"><div class="w-col" id="side"></div></div></div>${PL.footer()}`;
+    const map = PL.map(PL.$('#dmap', view), {seed: W.district || 'lima', label: 'Tu zona'});
+    if (W.online && !W.active) map.radar(true);
+    const toggle = () => { W.online = !W.online; PL.save(); PL.toast(W.online ? 'Estás conectado' : 'Te desconectaste'); PL.render(); };
     drawSide(view); drawActive(view);
     const feed = PL.$('#feed', view);
     if (W.active) { feed.innerHTML = ''; return; }
-    if (!W.online) { feed.innerHTML = `<div class="idle"><svg class="si" viewBox="0 0 48 48" aria-hidden="true">${PL.SI.caja}</svg><b>Estás desconectado</b><span>Prende el botón cuando estés libre y empezarán a llegar pedidos de tus oficios.</span></div>`; return; }
-    feed.innerHTML = `<div class="idle" id="idle"><div class="radar-mini" aria-hidden="true"><i></i><i></i><i></i><b></b></div><b>Buscando pedidos cerca de ti</b><span>Pedidos de ejemplo para la demo.</span></div><div id="reqs" style="display:grid;gap:10px"></div>`;
+    if (!W.online) {
+      feed.innerHTML = `<button class="go-btn" type="button" id="pw" aria-label="Conectarme">Conectar</button><div class="drv-bar"><b>Estás desconectado</b><span>Conéctate para recibir solicitudes de tus oficios.</span></div>`;
+      PL.$('#pw', view).onclick = toggle; return;
+    }
+    feed.innerHTML = `<div class="drv-bar on" id="idle"><span class="radar-mini" aria-hidden="true"><i></i><i></i><i></i><b></b></span><div><b>Buscando solicitudes</b><span>${PL.esc(W.zones.slice(0, 2).join(', '))}${W.zones.length > 2 ? '…' : ''}</span></div><button class="btn btn-l btn-sm" type="button" id="pw">Desconectar</button></div><div id="reqs" style="display:grid;gap:10px"></div>`;
+    PL.$('#pw', view).onclick = toggle;
     const reqs = PL.$('#reqs', feed);
     let n = 0;
-    const spawn = () => { if (W.active || reqs.children.length >= 3) return; reqs.appendChild(reqCard(view, ++n)); PL.$('#idle', feed).hidden = true; };
+    const spawn = () => { if (W.active || reqs.children.length >= 1) return; reqs.appendChild(reqCard(view, ++n)); PL.$('#idle', feed).hidden = true; };
     PL.later(spawn, 2500);
-    PL.every(spawn, 9500);
+    PL.every(spawn, 8000);
   }
 
   function reqCard(view, n){
@@ -162,7 +186,7 @@
     const r = {id: 'r' + n, kind, direct, date, time, repeat, svc: svc.id, tasks: svc.t.length ? [PL.pick(svc.t)] : [], district: PL.pick(W.zones), km: +PL.rnd(.5, 5).toFixed(1), when: kind === 'ya' ? 'Ahora' : PL.whenText({type: 'fecha', date, time}), price: 0, client: PL.pick(PL.DEMO.clients)};
     const el = document.createElement('article');
     el.className = `req rise ${kind}${direct ? ' direct' : ''}`;
-    el.innerHTML = `<span class="req-tag ${direct ? 'dir' : kind}">${direct ? PL.ic('heart') + `${PL.esc(r.client)} te eligió otra vez` : kind === 'ya' ? PL.ic('bolt') + 'Al toque' : PL.ic('cal') + PL.esc(r.when) + (repeat !== 'no' ? ' · ' + PL.REPEAT[repeat].toLowerCase() : '')}</span>
+    el.innerHTML = `<span class="req-tag ${direct ? 'dir' : kind}">${direct ? PL.ic('heart') + `${PL.esc(r.client)} te eligió otra vez` : kind === 'ya' ? PL.ic('bolt') + 'Inmediato' : PL.ic('cal') + PL.esc(r.when) + (repeat !== 'no' ? ' · ' + PL.REPEAT[repeat].toLowerCase() : '')}</span>
       <div class="req-h"><span class="svc-ic">${PL.si(svc.i)}</span><div class="req-i"><b>${PL.esc(svc.n)}</b><span>${PL.esc(r.district)} · ${PL.esc(r.when)}</span></div></div>
       <p class="req-note">${PL.esc(r.client)}: “${PL.esc(r.tasks[0] || 'Trabajo general')}”</p>
       <div class="req-acts"><button class="btn btn-g btn-sm" type="button" data-a="pass">Pasar</button><button class="btn btn-v btn-sm" type="button" data-a="ok">Aceptar</button></div>
@@ -197,7 +221,7 @@
     const STG = [['Aceptado', 'Voy en camino'], ['En camino', 'Llegué'], ['Llegaste', 'Empezar trabajo'], ['Trabajando', 'Terminé el trabajo'], ['Cobrar', `Cobré ${PL.money(a.price)}`]];
     box.innerHTML = `<div class="card" style="border:1.5px solid var(--tinta)"><div class="req-h"><span class="svc-ic">${PL.si(svc.i)}</span><div class="req-i"><span class="eti v">Trabajo activo · ${STG[a.stage][0]}</span><b style="margin-top:6px">${PL.esc(svc.n)} para ${PL.esc(a.client)}</b><span>${PL.esc(a.district)} · ${PL.esc(a.when)}</span></div><div class="req-p"><b>${PL.money(a.price)}</b></div></div>
       <div class="job-steps" aria-hidden="true">${STG.map((s, i) => `<i class="${i <= a.stage ? 'on' : ''}"></i>`).join('')}</div>
-      ${a.stage === 2 ? `<p style="font-weight:600;text-align:center">Pídele a ${PL.esc(a.client)} su código de inicio</p><div class="pin-in">${[0, 1, 2, 3].map(i => `<input inputmode="numeric" maxlength="1" aria-label="Dígito ${i + 1}" data-i="${i}">`).join('')}</div><p class="muted mono" style="text-align:center;font-size:.74rem">Demo · el código es ${a.pin}</p>` : ''}
+      ${a.stage === 2 ? `<p style="font-weight:600;text-align:center">Pídele a ${PL.esc(a.client)} su código de inicio</p><div class="pin-in">${[0, 1, 2, 3].map(i => `<input inputmode="numeric" maxlength="1" aria-label="Dígito ${i + 1}" data-i="${i}">`).join('')}</div><p class="muted mono" style="text-align:center;font-size:.74rem">Código del cliente: ${a.pin}</p>` : ''}
       ${a.stage === 4 ? `<p class="req-note">Cobra directo: efectivo, Yape o Plin.</p>` : ''}
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px"><a class="btn btn-l btn-sm" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(a.district + ', Lima')}">${PL.ic('nav')}Cómo llegar</a><button class="btn btn-l btn-sm" type="button" id="jx">No puedo ir</button></div>
       <button class="btn btn-t btn-full" type="button" id="jn" style="margin-top:8px">${STG[a.stage][1]}</button></div>`;
@@ -223,11 +247,11 @@
     const max = Math.max(1, ...days.map(x => x.v));
     const ag = (W.agenda || []).slice().sort((x, y) => PL.whenTs(x) - PL.whenTs(y));
     side.innerHTML = `<div class="card"><span class="eti v">${PL.ic('cal')}Tu agenda</span>
-        ${ag.length ? `<ul class="agenda" style="margin-top:14px">${ag.map((j, k) => { const [dw, dn] = PL.fdate(j.date + 'T12:00').split(' '); return `<li><span class="d">${dw}<b>${dn}</b></span><div class="x"><b>${PL.esc(PL.svc(j.svc).n)} · ${PL.esc(j.client)}</b><span>${PL.esc(PL.fhm(j.time))} · ${PL.esc(j.district)} · ${PL.money(j.price)}${j.repeat && j.repeat !== 'no' ? ' · ' + PL.REPEAT[j.repeat].toLowerCase() : ''}</span></div><button class="btn btn-l btn-xs" type="button" data-start="${j.id}" title="Demo: simula que llegó el día">Empezar</button></li>`; }).join('')}</ul>` : `<p class="muted" style="margin-top:10px">Los trabajos para otros días que aceptes aparecen aquí.</p>`}</div>
+        ${ag.length ? `<ul class="agenda" style="margin-top:14px">${ag.map((j, k) => { const [dw, dn] = PL.fdate(j.date + 'T12:00').split(' '); return `<li><span class="d">${dw}<b>${dn}</b></span><div class="x"><b>${PL.esc(PL.svc(j.svc).n)} · ${PL.esc(j.client)}</b><span>${PL.esc(PL.fhm(j.time))} · ${PL.esc(j.district)} · ${PL.money(j.price)}${j.repeat && j.repeat !== 'no' ? ' · ' + PL.REPEAT[j.repeat].toLowerCase() : ''}</span></div><button class="btn btn-l btn-xs" type="button" data-start="${j.id}" title="Empezar este trabajo">Empezar</button></li>`; }).join('')}</ul>` : `<p class="muted" style="margin-top:10px">Los trabajos para otros días que aceptes aparecen aquí.</p>`}</div>
       <div class="card"><span class="eti">${PL.ic('wallet')}Tus ganancias</span>
         <div class="bars" role="img" aria-label="Ganancias de los últimos 7 días">${days.map((x, i) => `<div><i class="${i === 6 ? 'today' : x.v ? 'on' : ''}" style="height:${Math.max(3, x.v / max * 100)}%" title="${PL.money(x.v)}"></i><span>${'DLMMJVS'[x.d.getDay()]}</span></div>`).join('')}</div>
         ${W.jobs.length ? `<ul class="jobs-l">${W.jobs.slice(-5).reverse().map(j => `<li><span>${PL.esc(PL.svc(j.svc).n)} · ${PL.esc(j.client)}</span><b>${PL.money(j.price)}</b></li>`).join('')}</ul>` : `<p class="muted">Aún no tienes ganancias. Conéctate y acepta tu primer trabajo.</p>`}</div>
-      ${W.status !== 'ok' ? `<div class="card yel"><b style="font-size:1.1rem;font-weight:600">Perfil en revisión</b><p style="margin-top:6px">Estamos revisando tu foto, tu DNI y tus antecedentes. Te avisamos aquí cuando esté activo.</p></div>` : ''}
+      ${W.status !== 'ok' ? `<div class="card"><span class="eti">${PL.ic('shield')}Estado de tu cuenta</span><ul class="chk">${[['Celular verificado', 'Listo', 'v'], ['Datos personales', 'Listo', 'v'], ['Documentos', 'En revisión', 'a'], ['Certificado de antecedentes', W.docs && W.docs.ant ? 'En revisión' : 'Pendiente', W.docs && W.docs.ant ? 'a' : 'o']].map(([t, st, c]) => `<li><span>${t}</span><span class="pill ${c}">${st}</span></li>`).join('')}</ul></div>` : ''}
       <div class="card"><div class="who">${PL.avatar(W.name, '#FFD86B')}<div><b>${PL.esc(W.name)}</b><span class="muted">${PL.esc(W.exp)} de experiencia</span></div></div>
         <div class="chips" style="margin:14px 0">${W.trades.map(t => `<span class="pill">${PL.esc(PL.svc(t).n)}</span>`).join('')}</div>
         <dl class="dl"><dt>Zonas</dt><dd>${PL.esc(W.zones.join(', '))}</dd><dt>Horario</dt><dd>${PL.esc(W.avail.join(', '))}</dd><dt>Clientes que repiten</dt><dd>${W.jobs.filter(j => j.direct).length}</dd></dl>

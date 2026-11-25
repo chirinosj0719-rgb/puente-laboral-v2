@@ -18,7 +18,7 @@
   }, {flow: true, tab: 'pedidos'});
 
   async function cancel(o){
-    const ok = await PL.confirm({title: '¿Cancelar el pedido?', text: o.worker ? `${PL.short(o.worker.name)} ya aceptó. Si cancelas, se le avisa al toque.` : 'Dejarás de recibir ofertas.', ok: 'Sí, cancelar', cancel: 'Seguir', danger: true});
+    const ok = await PL.confirm({title: '¿Cancelar el pedido?', text: o.worker ? `${PL.short(o.worker.name)} ya aceptó. Si cancelas, se le avisa de inmediato.` : 'Dejarás de recibir ofertas.', ok: 'Sí, cancelar', cancel: 'Seguir', danger: true});
     if (ok) { set(o, 'cancelado'); PL.toast('Pedido cancelado'); }
   }
 
@@ -31,7 +31,6 @@
     const offTxt = () => `Ofreces ${PL.money(o.price)} ${svc.other ? '' : PL.unitText(svc.u)}${o.people > 1 ? ` · ${o.people} personas` : ''}`;
     fb.innerHTML = `<div class="seek"><span class="ld" aria-hidden="true"><i></i><i></i><i></i></span><div><b>${prog ? `${PL.esc(svc.n)} · ${PL.esc(PL.whenText(o.when))}` : `Buscando ${PL.esc(svc.n.toLowerCase())} en ${PL.esc(o.district)}`}</b><span id="offTxt">${offTxt()}</span></div></div>
       ${prog ? `<p class="muted" style="margin:-4px 0 14px;font-size:.92rem">Para otros días las ofertas llegan con calma y no vencen: compara y elige cuando quieras. Te avisamos si llega una nueva.</p>` : ''}
-      <p class="eti" style="margin:4px 0 10px">Ofertas de ejemplo</p>
       <div class="offers" id="offers" aria-live="polite"></div>
       <div class="raise"><p><b>¿Quieres más ofertas?</b><br><span class="muted">Sube tu precio y llegan más rápido.</span></p><button class="btn btn-l btn-sm" type="button" data-r="${st}">+ S/ ${st}</button><button class="btn btn-l btn-sm" type="button" data-r="${st * 2}">+ S/ ${st * 2}</button></div>`;
     ff.hidden = false;
@@ -64,7 +63,7 @@
       const openChat = () => {
         el.dataset.hold = '1'; const bar = el.querySelector('.of-bar'); if (bar) bar.remove();
         o.qs = o.qs || {}; const q = o.qs[w.name] = o.qs[w.name] || {msgs: [], stage: 0};
-        PL.quoteChat({w, svc, whenTxt: prog ? PL.whenText(o.when) : 'Al toque', tasks: o.tasks, price: o.price, msgs: q.msgs, state: q, save: PL.save, onAccept: (amt, sum) => { if (sum) o.note = (o.note ? o.note + '\n' : '') + sum; if (el.isConnected) accept(amt); }});
+        PL.quoteChat({w, svc, whenTxt: prog ? PL.whenText(o.when) : 'Inmediato', tasks: o.tasks, price: o.price, msgs: q.msgs, state: q, save: PL.save, onAccept: (amt, sum) => { if (sum) o.note = (o.note ? o.note + '\n' : '') + sum; if (el.isConnected) accept(amt); }});
       };
       el.querySelector('[data-chat]').onclick = openChat;
       el.querySelectorAll('[data-prof], .of-top .av').forEach(x => x.onclick = () => PL.profile(w, {svc, district: o.district, when: prog ? PL.whenText(o.when) : 'Llega en ' + w.eta + ' min', onAccept: () => { if (el.isConnected) accept(); }, acceptLabel: `Aceptar ${PL.money(price)}`, onChat: openChat}));
@@ -86,7 +85,7 @@
     const {map, fb, ff} = shell(view, o, 'm', `Esperando a <span class="k">${PL.esc(nm)}</span>`);
     map.addPin('w', f);
     fb.innerHTML = `<div class="direct">${f.isBiz ? PL.bizLogo(f) : PL.avatar(f.name, f.color)}<div><b>${PL.esc(f.name)}</b><span>${f.isBiz ? 'Empresa · asignará a alguien de su equipo' : n ? `Te ayudó ${n} ${n === 1 ? 'vez' : 'veces'}` : 'De confianza'}</span></div><span class="heart" aria-hidden="true">${PL.ic('heart')}</span></div>
-      <div class="seek" id="dst"><span class="ld" aria-hidden="true"><i></i><i></i><i></i></span><div><b>Le enviamos tu pedido</b><span>${PL.esc(svc.n)} · ${o.mode === 'ya' ? 'al toque' : PL.esc(PL.whenText(o.when))} · ${PL.money(o.price)}</span></div></div>
+      <div class="seek" id="dst"><span class="ld" aria-hidden="true"><i></i><i></i><i></i></span><div><b>Le enviamos tu pedido</b><span>${PL.esc(svc.n)} · ${o.mode === 'ya' ? 'inmediato' : PL.esc(PL.whenText(o.when))} · ${PL.money(o.price)}</span></div></div>
       <p class="muted" id="dnote">${o.fallback ? 'Si no puede, te mostramos ofertas de otros trabajadores.' : 'Si no puede, te avisamos para que elijas otra opción.'}</p>`;
     ff.hidden = false;
     ff.innerHTML = `<button class="btn btn-l" type="button" id="cx">Cancelar</button><button class="btn btn-t" type="button" id="others">Abrir a otros</button>`;
@@ -133,9 +132,9 @@
       <div class="trk-acts"><button class="btn btn-l btn-sm" type="button" id="share">${PL.ic('share')}Compartir</button><button class="btn btn-r btn-sm" type="button" id="help">${PL.ic('alert')}Ayuda</button></div>
       ${s === 'programado' ? `<button class="btn btn-l btn-sm btn-full" type="button" id="resch" style="margin-top:8px">${PL.ic('cal')}Cambiar día u hora</button>` : ''}
       ${s === 'programado' || s === 'en_camino' ? `<button class="btn btn-g btn-sm btn-full" type="button" id="cx" style="margin-top:8px">Cancelar pedido</button>` : ''}
-      <div class="demo-skip">Demo <button type="button" id="skip">${s === 'programado' ? 'Simular que llegó el día' : 'Avanzar'} ›</button></div>`;
+      <div class="demo-skip"><button type="button" id="skip">${s === 'programado' ? 'Pasar al día del servicio' : 'Avanzar'} ›</button></div>`;
     PL.$('#chat', fb).onclick = () => PL.chat(o);
-    PL.$('#call', fb).onclick = () => PL.toast('En la demo no se hacen llamadas. Usa el chat.');
+    PL.$('#call', fb).onclick = () => PL.toast('Usa el chat para comunicarte.');
     PL.$$('.wk .av, .wk-i b', fb).forEach(x => x.onclick = () => PL.profile(w, {svc, district: o.district, when: PL.whenText(o.when)}));
     PL.$('#share', fb).onclick = () => share(o);
     PL.$('#help', fb).onclick = () => help(o);
@@ -242,12 +241,12 @@
     const asks = SVC_ASK[svc.id] || ASK[svc.c] || ['Cuéntame con detalle qué necesitas.', '¿Hay algo más que deba saber para el presupuesto?'];
     const chips = (HELP[svc.c] || ['Te mando una foto', 'Es urgente']);
     const save = () => { if (c.save) c.save(); };
-    if (!M.length) { M.push({me: false, t: `${w.isBiz ? `Hola, te escribimos de ${w.name}.` : `Hola, soy ${first}.`} Para armarte un buen presupuesto cuéntame bien qué necesitas. ${asks[0]}`}); save(); }
+    if (!M.length) { M.push({me: false, t: `${w.isBiz ? `Hola, te escribimos de ${w.name}.` : `Hola, soy ${first}.`} Para preparar un buen presupuesto, cuéntame con detalle qué necesitas. ${asks[0]}`}); save(); }
     const summary = () => [...(c.tasks || []), ...M.filter(m => m.me && m.t && !/^Tengo pensado/.test(m.t) && !chips.includes(m.t)).map(m => m.t)].join('. ').slice(0, 240);
     const quote = amount => ({me: false, quote: {svc: svc.n, work: summary() || svc.n, when: c.whenTxt, total: amount}});
     const qHtml = q => `<div class="msg it quote"><span class="eti">${PL.ic('wallet')}Presupuesto · ${PL.esc(q.svc)}</span><dl class="dl"><dt>Trabajo</dt><dd>${PL.esc(q.work)}</dd><dt>Incluye</dt><dd>Mano de obra y revisión. Los materiales los vemos juntos antes de comprarlos.</dd><dt>Cuándo</dt><dd>${PL.esc(q.when)}</dd><dt>Total</dt><dd><b>${PL.money(q.total)}</b> <span class="muted">· el monto que propusiste</span></dd></dl>${c.onAccept ? `<button class="btn btn-a btn-sm btn-full" type="button" data-acq="${q.total}">Aceptar presupuesto</button>` : ''}</div>`;
     PL.sheet({title: `${w.isBiz ? PL.bizLogo(w, 's') : PL.avatar(w.name, w.color, 's')}<span>${PL.esc(w.isBiz ? w.name : PL.short(w.name))}</span>`,
-      body: `<p class="muted chat-tip">Explícale todo con detalle: así ${PL.esc(first)} te arma un presupuesto bien hecho.</p><div class="chat" id="cl" aria-live="polite"></div><div class="quick" id="qk"></div>
+      body: `<p class="muted chat-tip">Explica con detalle lo que necesitas para recibir un presupuesto preciso.</p><div class="chat" id="cl" aria-live="polite"></div><div class="quick" id="qk"></div>
         <div class="amt" id="amt" hidden><span>S/</span><input type="number" inputmode="numeric" min="1" placeholder="¿Cuánto tienes pensado?" aria-label="Monto en soles"><button class="btn btn-t btn-sm" type="button">Proponer</button></div>
         <form class="chat-f" id="cf"><label class="ibtn" title="Enviar una foto">${PL.ic('cam')}<input type="file" accept="image/*" hidden></label><input class="in" id="ci" placeholder="Escribe con detalle…" autocomplete="off" aria-label="Mensaje"><button class="btn btn-t" type="submit" aria-label="Enviar">${PL.ic('arrow')}</button></form>`,
       onOpen: s => {
@@ -263,10 +262,10 @@
         const after = () => {
           if (st.stage === 0) { st.stage = 1; reply(() => ({me: false, t: asks[1]})); }
           else if (st.stage === 1) {
-            if (c.price) { st.stage = 3; reply(() => [{me: false, t: `Perfecto, ya entendí. Por tu oferta de ${PL.money(c.price)} esto es lo que incluyo:`}, quote(c.price)], 1500); }
-            else { st.stage = 2; reply(() => ({me: false, t: 'Perfecto, ya entendí lo que necesitas. ¿Cuánto tienes pensado pagar? Con eso te armo el presupuesto con el detalle.'})); }
+            if (c.price) { st.stage = 3; reply(() => [{me: false, t: `Perfecto, ya entendí. Por tu oferta de ${PL.money(c.price)}, esto es lo que incluye:`}, quote(c.price)], 1500); }
+            else { st.stage = 2; reply(() => ({me: false, t: 'Perfecto, ya entendí lo que necesitas. ¿Cuánto tienes pensado invertir? Con eso preparo el presupuesto detallado.'})); }
           }
-          else if (st.stage === 2) reply(() => ({me: false, t: 'Escríbeme abajo un monto aproximado en soles y te armo el presupuesto.'}));
+          else if (st.stage === 2) reply(() => ({me: false, t: 'Indícame abajo un monto aproximado en soles y preparo el presupuesto.'}));
           else reply(() => ({me: false, t: PL.pick(['Entendido, lo tengo en cuenta.', 'Perfecto, lo agrego.', 'Listo. Cualquier otra cosa me dices.'])}));
           save();
         };
@@ -278,7 +277,7 @@
           const v = Math.round(Number(amt.querySelector('input').value));
           if (!(v > 0)) { PL.toast('Escribe un monto en soles'); return; }
           M.push({me: true, t: `Tengo pensado ${PL.money(v)}`}); st.stage = 3; save(); draw();
-          reply(() => [{me: false, t: 'Listo, con lo que me contaste te armé el presupuesto:'}, quote(v)], 1500);
+          reply(() => [{me: false, t: 'Gracias. Este es el presupuesto según lo que me contaste:'}, quote(v)], 1500);
         };
         cl.onclick = e => { const b = e.target.closest('[data-acq]'); if (!b) return; PL.closeSheet(); c.onAccept(Number(b.dataset.acq), summary()); };
         draw();

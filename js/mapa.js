@@ -103,7 +103,7 @@
   /* ——— escena de la portada: busca, llegan trabajadores, uno acepta y viene ——— */
   PL.heroScene = host => {
     const m = PL.map(host, {seed: 'portada', label: 'Ejemplo de cómo se ve un pedido en el mapa'});
-    host.insertAdjacentHTML('beforeend', `<span class="scene-tag">Así se ve un pedido</span><div class="scene-card out" id="scCard"></div>`);
+    host.insertAdjacentHTML('beforeend', `<div class="scene-card out" id="scCard"></div>`);
     const card = host.querySelector('#scCard');
     const SC = [
       {s: 'gasfitero', d: 'Santiago de Surco', w: 'Carlos Mendoza', c: '#FFD86B', p: 80, eta: 12, task: 'Fuga de agua'},
@@ -116,7 +116,7 @@
     function cycle(){
       const sc = SC[n++ % SC.length], svc = PL.svc(sc.s);
       m.clear(); m.radar(true);
-      show(`<span class="svc-ic" style="margin:0;width:46px;height:46px">${PL.si(svc.i)}</span><div><div class="t">Buscando ${PL.esc(svc.n.toLowerCase())}</div><div class="s">${PL.esc(sc.task)} · ${PL.esc(sc.d)}</div></div><span class="pill ${['mesero', 'mudanza'].includes(sc.s) ? 'm' : 'a'}">${['mesero', 'mudanza'].includes(sc.s) ? 'Programado' : 'Al toque'}</span>`);
+      show(`<span class="svc-ic" style="margin:0;width:46px;height:46px">${PL.si(svc.i)}</span><div><div class="t">Buscando ${PL.esc(svc.n.toLowerCase())}</div><div class="s">${PL.esc(sc.task)} · ${PL.esc(sc.d)}</div></div><span class="pill ${['mesero', 'mudanza'].includes(sc.s) ? 'm' : 'a'}">${['mesero', 'mudanza'].includes(sc.s) ? 'Programado' : 'Inmediato'}</span>`);
       const others = PL.DEMO.workers.filter(x => x !== sc.w);
       PL.later(() => m.addPin('a', {name: '', color: '#FFB08A'}), 900);
       PL.later(() => m.addPin('w', {name: '', color: '#FF5A1F'}), 1500);

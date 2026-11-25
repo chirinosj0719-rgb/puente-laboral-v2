@@ -2,10 +2,12 @@
 
 App web para pedir trabajos informales de confianza: gasfiteros, niñeras, meseros, mudanzas y más.
 
-- **Al toque:** alguien va ahora, en minutos.
+- **Inmediato:** atención en minutos.
 - **Programado:** eliges día y hora con anticipación, una vez o cada semana.
 - **Mis trabajadores:** vuelves a contratar directo a quien te gustó.
-- **Modo trabajador:** registro, pedidos al toque, agenda para otros días y ganancias.
+- **Trabajadores (estilo Uber Driver):** registro con celular verificado y documentos, panel con mapa, solicitudes inmediatas, agenda y ganancias.
+- **Empresas (estilo Rappi Aliados):** página `empresas.html` con registro por pasos y panel para asignar solicitudes a su equipo.
+- **Cuenta:** menú con información personal, contraseña, historial, direcciones, favoritos, billetera, notificaciones, ajustes, información legal y Libro de Reclamaciones.
 
 Es una **demo**: los trabajadores que aparecen al pedir son de ejemplo, no hay precios ni calificaciones inventadas, y los datos se guardan solo en el dispositivo de quien la usa. La ayuda es dentro de la app (emergencias y reportes); no hay atención por WhatsApp.
 
@@ -17,6 +19,7 @@ Es una **demo**: los trabajadores que aparecen al pedir son de ejemplo, no hay p
 ## Estructura
 
 - `index.html`: la landing, que explica qué es Puente Laboral y lleva a la app (`js/landing.js`).
+- `empresas.html`: página para empresas que se quieren unir (`js/aliados.js`).
 - `app.html`: la app en sí (pedir, pedidos, trabajar, empresas, cuenta).
 - `css/`: estilos (`app.css` base, `vistas.css` pantallas, `flujo.css` pedido y mapa).
 - `js/`: `core.js` (estado y rutas), `cliente.js` (inicio, pedidos, mis trabajadores), `pedido.js` (pedir), `seguimiento.js` (ofertas, seguimiento, pago, calificación), `trabajador.js`, `cuenta.js`, `empresas.js` (empresas con su equipo), `mapa.js`.
