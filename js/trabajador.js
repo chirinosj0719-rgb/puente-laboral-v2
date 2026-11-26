@@ -1,4 +1,4 @@
-/* Puente Laboral · lado del trabajador: presentación, registro y panel */
+/* Agéndalo · lado del trabajador: presentación, registro y panel */
 (function(){
   const PL = window.PL;
   const AVAIL = ['Mañanas', 'Tardes', 'Noches', 'Fines de semana', 'Eventos'];
@@ -54,7 +54,7 @@
         <div class="docs">${docList().map(([k, label, ic, req, sub]) => `<label class="doc"><input type="file" accept="image/*,application/pdf" data-doc="${k}"><span class="ico">${PL.ic(D.docs[k] ? 'check' : ic)}</span><span class="tx"><b>${label}</b><span>${sub}</span></span><span class="pill ${D.docs[k] ? 'v' : req ? 'a' : 'o'}">${D.docs[k] ? 'Enviado' : req ? 'Requerido' : 'Opcional'}</span></label>`).join('')}</div>
         <label class="field" style="margin-top:16px"><span>Cuéntales sobre ti <em>(opcional)</em></span><textarea class="in" id="f-bio" maxlength="300" placeholder="Ej.: gasfitero hace 8 años, llevo mis herramientas, trabajo limpio.">${PL.esc(D.bio)}</textarea></label>
         <label class="check"><input type="checkbox" id="c1"${W ? ' checked' : ''}><span>Confirmo que soy mayor de 18 años y que mis datos son reales.</span></label>
-        <label class="check"><input type="checkbox" id="c2"${W ? ' checked' : ''}><span>Autorizo a Puente Laboral a verificar mi identidad y mostrar mi perfil a clientes.</span></label>`
+        <label class="check"><input type="checkbox" id="c2"${W ? ' checked' : ''}><span>Autorizo a Agéndalo a verificar mi identidad y mostrar mi perfil a clientes.</span></label>`
     ];
     const NAMES = ['', 'Tus datos', 'Tus oficios', 'Zona y horario', 'Documentos'];
     const docList = () => [['photo', 'Foto de perfil', 'cam', true, 'Una foto clara de tu cara'], ['dniF', 'DNI (frente y reverso)', 'id', true, 'Vigente'], ['ant', 'Certificado de antecedentes', 'shield', false, 'Puedes subirlo después']]
@@ -67,7 +67,7 @@
           const ph = PL.$('#f-phone', rb).value.trim();
           if (!/^9\d{8}$/.test(ph)) { PL.toast('El celular tiene 9 dígitos y empieza con 9'); return; }
           D.phone = ph; D.code = String(PL.ri(1000, 9999)); otp.hidden = false; ins[0].focus();
-          PL.toast(`SMS de Puente: tu código es ${D.code}`, 6000);
+          PL.toast(`SMS de Agéndalo: tu código es ${D.code}`, 6000);
         };
         ins.forEach((x, i) => x.oninput = () => {
           x.value = x.value.replace(/\D/g, ''); if (x.value && ins[i + 1]) ins[i + 1].focus();
@@ -255,7 +255,7 @@
       <div class="card"><div class="who">${PL.avatar(W.name, '#FFD86B')}<div><b>${PL.esc(W.name)}</b><span class="muted">${PL.esc(W.exp)} de experiencia</span></div></div>
         <div class="chips" style="margin:14px 0">${W.trades.map(t => `<span class="pill">${PL.esc(PL.svc(t).n)}</span>`).join('')}</div>
         <dl class="dl"><dt>Zonas</dt><dd>${PL.esc(W.zones.join(', '))}</dd><dt>Horario</dt><dd>${PL.esc(W.avail.join(', '))}</dd><dt>Clientes que repiten</dt><dd>${W.jobs.filter(j => j.direct).length}</dd></dl>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px"><a class="btn btn-l btn-sm" href="#/registro">${PL.ic('edit')}Editar</a><a class="btn btn-l btn-sm" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(`Hola, soy ${W.name}. Hago trabajos de ${W.trades.map(t => PL.svc(t).n.toLowerCase()).join(', ')} en ${W.zones.join(', ')}. Contrátame por Puente Laboral.`)}">${PL.ic('share')}Compartir</a></div></div>`;
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px"><a class="btn btn-l btn-sm" href="#/registro">${PL.ic('edit')}Editar</a><a class="btn btn-l btn-sm" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(`Hola, soy ${W.name}. Hago trabajos de ${W.trades.map(t => PL.svc(t).n.toLowerCase()).join(', ')} en ${W.zones.join(', ')}. Contrátame por Agéndalo.`)}">${PL.ic('share')}Compartir</a></div></div>`;
     const d = PL.$('#docs', side); if (d) d.onclick = () => sendDocs(false);
     side.querySelectorAll('[data-start]').forEach(b => b.onclick = () => {
       if (W.active) { PL.toast('Termina primero tu trabajo activo'); return; }

@@ -1,4 +1,4 @@
-/* Puente Laboral · empresas con su equipo (choferes, veterinarias, limpieza…)
+/* Agéndalo · empresas con su equipo (choferes, veterinarias, limpieza…)
    Las de muestra no llevan calificaciones ni cifras inventadas. */
 (function(){
   const PL = window.PL;

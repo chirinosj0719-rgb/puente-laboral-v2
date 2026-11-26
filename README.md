@@ -1,4 +1,6 @@
-# Puente Laboral
+# Agéndalo
+
+_Antes Puente Laboral._
 
 App web para pedir trabajos informales de confianza: gasfiteros, niñeras, meseros, mudanzas y más.
 
@@ -18,7 +20,7 @@ Es una **demo**: los trabajadores que aparecen al pedir son de ejemplo, no hay p
 
 ## Estructura
 
-- `index.html`: la landing, que explica qué es Puente Laboral y lleva a la app (`js/landing.js`).
+- `index.html`: la landing, que explica qué es Agéndalo y lleva a la app (`js/landing.js`).
 - `empresas.html`: página para empresas que se quieren unir (`js/aliados.js`).
 - `app.html`: la app en sí (pedir, pedidos, trabajar, empresas, cuenta).
 - `css/`: estilos (`app.css` base, `vistas.css` pantallas, `flujo.css` pedido y mapa).

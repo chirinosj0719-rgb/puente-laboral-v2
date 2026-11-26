@@ -1,4 +1,4 @@
-/* Puente Laboral · página para empresas (como Rappi Aliados): beneficios, pasos, requisitos y registro */
+/* Agéndalo · página para empresas (como Rappi Aliados): beneficios, pasos, requisitos y registro */
 (function(){
   const PL = window.PL;
   const APP = 'app.html';
@@ -10,10 +10,10 @@
     document.body.dataset.view = 'inicio';
     root.innerHTML = `
     <section class="hero"><div class="hero-in">
-      <span class="eti" style="color:#FFB08A">${PL.ic('bag')}Puente para empresas</span>
+      <span class="eti" style="color:#FFB08A">${PL.ic('bag')}Agéndalo para empresas</span>
       <h1 class="rise" style="margin-top:22px">Tu empresa, con más clientes <span class="sel"><i aria-hidden="true"></i>cerca</span>.</h1>
       <div class="hero-row rise"><p class="lead">Súmate con tu equipo y recibe pedidos de tu zona en un solo panel.</p>
-        <div class="land-ctas"><a class="btn btn-a" href="#registro" data-to="registro">${B ? 'Editar mi empresa' : 'Registrar mi empresa'}<span class="arr">${PL.ic('arrow')}</span></a>${B ? `<a class="btn btn-dl" href="${APP}#/mi-empresa">Ir a mi panel</a>` : `<a class="btn btn-dl" href="index.html">Conoce Puente</a>`}</div></div>
+        <div class="land-ctas"><a class="btn btn-a" href="#registro" data-to="registro">${B ? 'Editar mi empresa' : 'Registrar mi empresa'}<span class="arr">${PL.ic('arrow')}</span></a>${B ? `<a class="btn btn-dl" href="${APP}#/mi-empresa">Ir a mi panel</a>` : `<a class="btn btn-dl" href="index.html">Conoce Agéndalo</a>`}</div></div>
     </div></section>
     <div class="wrap">
       <section class="sec" id="beneficios"><div class="sec-h"><span class="eti">${PL.ic('star')}Beneficios</span><h2>Por qué <span class="k">sumarte</span></h2></div>
@@ -66,7 +66,7 @@
         ${D.team.map((m, k) => `<div class="team-row"><label class="field"><span>Nombre y apellido</span><input class="in" data-tn="${k}" maxlength="50" value="${PL.esc(m.name)}"></label><label class="field"><span>DNI</span><input class="in" data-td="${k}" inputmode="numeric" maxlength="8" value="${PL.esc(m.dni || '')}"></label><label class="field"><span>Oficio</span><select class="in" data-tr="${k}">${roleOpts(m.role)}</select></label>${D.team.length > 1 ? `<button class="ibtn" type="button" data-rm="${k}" aria-label="Quitar">${PL.ic('x')}</button>` : ''}</div>`).join('')}
         <button class="btn btn-l btn-sm" type="button" id="a-addt">${PL.ic('plus')}Agregar a alguien</button>`,
       () => `<div class="docs">${DOCS.map(([k, label, ic, req]) => `<label class="doc"><input type="file" accept="image/*,application/pdf" data-doc="${k}"><span class="ico">${PL.ic(D.docs[k] ? 'check' : ic)}</span><span class="tx"><b>${label}</b><span>${req ? 'Requerido' : 'Opcional'}</span></span><span class="pill ${D.docs[k] ? 'v' : 'o'}">${D.docs[k] ? 'Enviado' : 'Subir'}</span></label>`).join('')}</div>
-        <label class="check" style="margin-top:18px"><input type="checkbox" id="a-ok"${B ? ' checked' : ''}><span>Confirmo que los datos son reales y autorizo a Puente Laboral a verificar el RUC y a mi equipo.</span></label>`
+        <label class="check" style="margin-top:18px"><input type="checkbox" id="a-ok"${B ? ' checked' : ''}><span>Confirmo que los datos son reales y autorizo a Agéndalo a verificar el RUC y a mi equipo.</span></label>`
     ];
     function collect(){
       if (step === 0) { D.rep = val('#a-rep').trim(); D.phone = val('#a-ph').trim(); D.email = val('#a-em').trim(); }

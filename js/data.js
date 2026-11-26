@@ -1,4 +1,4 @@
-/* Puente Laboral · datos
+/* Agéndalo · datos
    Todo lo que cambia el negocio vive aquí: catálogo,
    precios referenciales y distritos. */
 window.PL = window.PL || {};

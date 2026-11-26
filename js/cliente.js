@@ -1,4 +1,4 @@
-/* Puente Laboral · lado del cliente: inicio, mis pedidos y mis trabajadores */
+/* Agéndalo · lado del cliente: inicio, mis pedidos y mis trabajadores */
 (function(){
   const PL = window.PL;
   PL.mode = PL.mode || 'ya';

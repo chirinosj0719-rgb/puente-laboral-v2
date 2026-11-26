@@ -1,4 +1,4 @@
-/* Puente Laboral · cuenta: ingresar, perfil, direcciones, billetera, notificaciones, ajustes, legal y Libro de Reclamaciones */
+/* Agéndalo · cuenta: ingresar, perfil, direcciones, billetera, notificaciones, ajustes, legal y Libro de Reclamaciones */
 (function(){
   const PL = window.PL;
   const page = (ic, eti, title, body) => `<div class="wrap"><div class="page-h"><span class="eti">${PL.ic(ic)}${eti}</span><h1>${title}</h1></div><div class="set">${body}</div></div>${PL.footer()}`;
@@ -152,7 +152,7 @@
     const doc = (t, items) => `<details class="faq"><summary>${t}</summary><div class="legal">${items.map(i => `<p>${i}</p>`).join('')}<p class="muted">[Texto legal completo por redactar y validar con un abogado]</p></div></details>`;
     view.innerHTML = page('id', 'Soporte', 'Información legal', `
       <div class="list">
-        ${doc('Términos y condiciones', ['Puente Laboral es una plataforma que conecta a clientes con trabajadores independientes y empresas de servicios.', 'Cada servicio se acuerda entre el cliente y quien lo realiza: alcance, fecha y precio.', 'Los trabajadores y las empresas pasan por una verificación antes de recibir pedidos.'])}
+        ${doc('Términos y condiciones', ['Agéndalo es una plataforma que conecta a clientes con trabajadores independientes y empresas de servicios.', 'Cada servicio se acuerda entre el cliente y quien lo realiza: alcance, fecha y precio.', 'Los trabajadores y las empresas pasan por una verificación antes de recibir pedidos.'])}
         ${doc('Política de privacidad', ['Tratamos tus datos personales conforme a la Ley N.° 29733, Ley de Protección de Datos Personales.', 'Usamos tus datos para gestionar tus pedidos, verificar perfiles y comunicarnos contigo.', 'Puedes pedir el acceso, la corrección o la eliminación de tus datos.'])}
         <a href="#/reclamaciones">${PL.ic('book')}<span>Libro de Reclamaciones</span>${PL.ic('chev', 'i chev')}</a>
       </div>`);

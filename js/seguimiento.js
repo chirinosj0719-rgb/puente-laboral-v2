@@ -1,4 +1,4 @@
-/* Puente Laboral · un pedido en vivo: ofertas → en camino → trabajando → pago → calificación */
+/* Agéndalo · un pedido en vivo: ofertas → en camino → trabajando → pago → calificación */
 (function(){
   const PL = window.PL;
   const DUR = {en_camino: 26000, llego: 7000, trabajando: 15000};   // tiempos de la demo
@@ -177,8 +177,8 @@
 
   function share(o){
     const svc = PL.svc(o.svc);
-    const text = `Mi pedido en Puente Laboral: ${svc.n} con ${o.worker.name}, ${PL.whenText(o.when)} en ${o.district}.`;
-    if (navigator.share) navigator.share({title: 'Mi pedido en Puente Laboral', text}).catch(() => {});
+    const text = `Mi pedido en Agéndalo: ${svc.n} con ${o.worker.name}, ${PL.whenText(o.when)} en ${o.district}.`;
+    if (navigator.share) navigator.share({title: 'Mi pedido en Agéndalo', text}).catch(() => {});
     else if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => PL.toast('Copiado. Pégalo en el chat de tu familia.'), () => PL.toast(text, 5000));
     else PL.toast(text, 5000);
   }

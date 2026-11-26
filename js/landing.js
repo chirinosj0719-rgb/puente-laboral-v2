@@ -1,4 +1,4 @@
-/* Puente Laboral · landing: explica qué es y lleva a la app (app.html) */
+/* Agéndalo · landing: explica qué es y lleva a la app (app.html) */
 (function(){
   const PL = window.PL;
   const APP = 'app.html';
@@ -63,7 +63,7 @@
         </ul>
       </section>
       <section class="cta-work" id="trabajar">
-        <div><span class="eti">${PL.ic('bag')}Para quienes trabajan</span><h2 style="margin-top:14px">Ofrece tus servicios con Puente.</h2><a class="btn btn-w" href="${APP}#/trabajar" style="margin-top:28px">Quiero trabajar<span class="arr">${PL.ic('arrow')}</span></a> <a class="btn btn-dl" href="empresas.html" style="margin-top:28px">Registrar mi empresa</a></div>
+        <div><span class="eti">${PL.ic('bag')}Para quienes trabajan</span><h2 style="margin-top:14px">Ofrece tus servicios con Agéndalo.</h2><a class="btn btn-w" href="${APP}#/trabajar" style="margin-top:28px">Quiero trabajar<span class="arr">${PL.ic('arrow')}</span></a> <a class="btn btn-dl" href="empresas.html" style="margin-top:28px">Registrar mi empresa</a></div>
         <ul><li>Tú pones tus horarios</li><li>Trabajos cerca de casa</li><li>Cobras directo</li><li>Clientes que repiten</li></ul>
       </section>
       <section class="land-end">
@@ -79,7 +79,15 @@
     PL.$$('.rot', land).forEach((box, b) => {
       const ws = Array.from(box.querySelectorAll('.rot-w')); let k = 0;
       const fit = () => { const cs = getComputedStyle(box); box.style.width = (ws[k].offsetWidth + parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight)) + 'px'; };
-      const show = () => { ws.forEach((x, i) => { x.classList.toggle('on', i === k); x.setAttribute('aria-hidden', i === k ? 'false' : 'true'); }); box.setAttribute('aria-label', ws[k].textContent); fit(); };
+      /* si la palabra nueva es más larga, primero crece el recuadro y luego aparece; si es más corta, al revés */
+      const show = () => {
+        const cs = getComputedStyle(box), pad = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+        const nextW = ws[k].offsetWidth + pad, curW = box.getBoundingClientRect().width;
+        ws.forEach(x => { x.classList.toggle('on', false); x.setAttribute('aria-hidden', 'true'); });
+        const reveal = () => { ws[k].classList.toggle('on', true); ws[k].setAttribute('aria-hidden', 'false'); box.setAttribute('aria-label', ws[k].textContent); };
+        if (nextW > curW) { box.style.width = nextW + 'px'; setTimeout(reveal, 380); }
+        else setTimeout(() => { box.style.width = nextW + 'px'; reveal(); }, 300);
+      };
       fit(); if (document.fonts) document.fonts.ready.then(fit); addEventListener('resize', fit);
       if (!matchMedia('(prefers-reduced-motion: reduce)').matches) setTimeout(() => setInterval(() => { k = (k + 1) % ws.length; show(); }, 2600), b * 1300);
     });

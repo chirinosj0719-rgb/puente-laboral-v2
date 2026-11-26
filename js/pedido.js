@@ -1,4 +1,4 @@
-/* Puente Laboral · pedir un servicio
+/* Agéndalo · pedir un servicio
    Dos caminos separados:
    - Inmediato (mode 'ya'):    qué → dónde y cuánto. Alguien va ahora.
    - Programado (mode 'prog'): qué → qué día → dónde y cuánto. Con anticipación, una vez o repetido.

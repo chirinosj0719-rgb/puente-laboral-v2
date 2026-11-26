@@ -1,4 +1,4 @@
-/* Puente Laboral · mapa plano en SVG
+/* Agéndalo · mapa plano en SVG
    No es un mapa real: es un dibujo que explica qué pasa (buscando, quién está cerca, quién viene). */
 (function(){
   const PL = window.PL;

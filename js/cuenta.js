@@ -1,13 +1,13 @@
-/* Puente Laboral · cuenta: centro de todas las secciones de la cuenta */
+/* Agéndalo · cuenta: centro de todas las secciones de la cuenta */
 (function(){
   const PL = window.PL;
   const FAQ = [
-    ['¿Cuánto cuesta?', 'Tú propones el precio y se lo pagas directamente a quien hizo el trabajo, al terminar. [Comisión de Puente Laboral: por definir]'],
+    ['¿Cuánto cuesta?', 'Tú propones el precio y se lo pagas directamente a quien hizo el trabajo, al terminar. [Comisión de Agéndalo: por definir]'],
     ['¿Cómo se paga?', 'En efectivo, Yape o Plin, directamente a la persona o empresa que hizo el trabajo.'],
     ['¿Cómo verifican a los trabajadores y empresas?', 'Revisamos el DNI y el certificado de antecedentes de cada trabajador, y el RUC de cada empresa, antes de activarlos.'],
     ['¿Para qué es el código de inicio?', 'Es un número de 4 dígitos que solo tú tienes. Cuando llega la persona, se lo das y así confirmas que es quien aceptó tu pedido.'],
     ['¿Qué hago si algo sale mal?', 'Dentro del pedido usa el botón Ayuda: puedes llamar a emergencias o reportar el problema. También puedes registrar un reclamo en el Libro de Reclamaciones.'],
-    ['¿Cómo empiezo a trabajar con Puente?', 'Entra a Trabajar con Puente, verifica tu celular y sube tus documentos. Las empresas se registran desde la página Para empresas.']
+    ['¿Cómo empiezo a trabajar con Agéndalo?', 'Entra a Trabajar con Agéndalo, verifica tu celular y sube tus documentos. Las empresas se registran desde la página Para empresas.']
   ];
 
   PL.route('cuenta', view => {
