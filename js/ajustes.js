@@ -1,4 +1,4 @@
-/* Agéndalo · cuenta: ingresar, perfil, direcciones, billetera, notificaciones, ajustes, legal y Libro de Reclamaciones */
+/* Agéndalo · cuenta: perfil, direcciones, billetera, notificaciones, ajustes, legal y Libro de Reclamaciones */
 (function(){
   const PL = window.PL;
   const page = (ic, eti, title, body) => `<div class="wrap"><div class="page-h"><span class="eti">${PL.ic(ic)}${eti}</span><h1>${title}</h1></div><div class="set">${body}</div></div>${PL.footer()}`;
@@ -8,43 +8,9 @@
   };
   const okMail = m => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(m);
 
-  /* ——— ingresar / crear cuenta ——— */
-  PL.route('ingresar', (view, a, qs) => {
-    const S = PL.S; let mode = S.account ? 'in' : 'up';
-    const draw = () => {
-      view.innerHTML = page('user', 'Tu cuenta', mode === 'in' ? 'Ingresa' : 'Crea tu cuenta', `
-        <div class="seg" style="max-width:420px;margin-bottom:22px" role="group"><button type="button" data-m="in" aria-pressed="${mode === 'in'}">Ingresar</button><button type="button" data-m="up" aria-pressed="${mode === 'up'}">Crear cuenta</button></div>
-        <form id="af" class="set-f">
-          ${mode === 'up' ? `<label class="field"><span>Nombre y apellido</span><input class="in" id="a-n" autocomplete="name" maxlength="60" value="${PL.esc(S.client.name)}"></label>` : ''}
-          <label class="field"><span>Correo</span><input class="in" id="a-e" type="email" autocomplete="email" maxlength="80"></label>
-          <label class="field"><span>Contraseña</span><input class="in" id="a-p" type="password" autocomplete="${mode === 'in' ? 'current-password' : 'new-password'}" minlength="8"></label>
-          ${mode === 'up' ? `<label class="field"><span>Repite la contraseña</span><input class="in" id="a-p2" type="password" autocomplete="new-password"></label>` : ''}
-          <button class="btn btn-t btn-full" type="submit">${mode === 'in' ? 'Ingresar' : 'Crear cuenta'}</button>
-        </form>`);
-      PL.$('.seg', view).onclick = e => { const b = e.target.closest('[data-m]'); if (b) { mode = b.dataset.m; draw(); } };
-      PL.$('#af', view).onsubmit = async e => {
-        e.preventDefault();
-        const em = PL.$('#a-e', view).value.trim().toLowerCase(), pw = PL.$('#a-p', view).value;
-        if (!okMail(em)) return PL.toast('Escribe un correo válido');
-        if (pw.length < 8) return PL.toast('La contraseña debe tener al menos 8 caracteres');
-        if (mode === 'up') {
-          const n = PL.$('#a-n', view).value.trim();
-          if (n.length < 3) return PL.toast('Escribe tu nombre');
-          if (pw !== PL.$('#a-p2', view).value) return PL.toast('Las contraseñas no coinciden');
-          S.account = {name: n, email: em, hash: await hash(pw)}; if (!S.client.name) S.client.name = n;
-        } else {
-          if (!S.account || S.account.email !== em || S.account.hash !== await hash(pw)) return PL.toast('Correo o contraseña incorrectos');
-        }
-        S.session = {email: em, at: Date.now()}; PL.save();
-        PL.toast(mode === 'up' ? 'Cuenta creada' : 'Bienvenido de nuevo'); PL.go(qs.get('next') || '#/cuenta');
-      };
-    };
-    draw();
-  }, {tab: 'cuenta'});
-
   /* ——— información personal y contraseña ——— */
   PL.route('perfil', view => {
-    const S = PL.S, c = S.client, acc = S.account;
+    const S = PL.S, c = S.client, acc = PL.me();
     let dist = c.district;
     view.innerHTML = page('user', 'Tu cuenta', 'Información personal', `
       <form id="pf" class="set-f">
@@ -55,8 +21,9 @@
         <button class="btn btn-t" type="submit">Guardar</button>
       </form>
       <div class="set-sec" id="clave"><h2>${PL.ic('lock')}Contraseña</h2>
-        ${acc ? `<form id="kf" class="set-f"><label class="field"><span>Contraseña actual</span><input class="in" id="k-0" type="password" autocomplete="current-password"></label><div class="row2"><label class="field"><span>Nueva contraseña</span><input class="in" id="k-1" type="password" autocomplete="new-password"></label><label class="field"><span>Repite la nueva</span><input class="in" id="k-2" type="password" autocomplete="new-password"></label></div><button class="btn btn-l" type="submit">Cambiar contraseña</button></form>`
-          : `<p class="muted" style="margin-bottom:14px">Crea una cuenta con tu correo y una contraseña para proteger tus datos.</p><a class="btn btn-l" href="#/ingresar?next=%23%2Fperfil">Crear cuenta</a>`}
+        ${acc && !acc.hash ? `<p class="muted" style="margin-bottom:14px">${acc.google ? `Ingresas con tu cuenta de Google (${PL.esc(acc.email)}). También puedes crear una contraseña para ingresar con tu correo.` : 'Ingresas con tu celular. Si agregas tu correo arriba, puedes crear una contraseña para ingresar también con él.'}</p><form id="kf" class="set-f"><div class="row2"><label class="field"><span>Contraseña</span><input class="in" id="k-1" type="password" autocomplete="new-password"></label><label class="field"><span>Repite la contraseña</span><input class="in" id="k-2" type="password" autocomplete="new-password"></label></div><button class="btn btn-l" type="submit">Crear contraseña</button></form>`
+          : acc ? `<form id="kf" class="set-f"><label class="field"><span>Contraseña actual</span><input class="in" id="k-0" type="password" autocomplete="current-password"></label><div class="row2"><label class="field"><span>Nueva contraseña</span><input class="in" id="k-1" type="password" autocomplete="new-password"></label><label class="field"><span>Repite la nueva</span><input class="in" id="k-2" type="password" autocomplete="new-password"></label></div><button class="btn btn-l" type="submit">Cambiar contraseña</button></form>`
+          : `<p class="muted" style="margin-bottom:14px">Crea una cuenta con tu correo y una contraseña para proteger tus datos.</p><a class="btn btn-l" href="#/crear-cuenta?next=%23%2Fperfil">Crear cuenta</a>`}
       </div>`);
     PL.$('#p-d', view).onclick = () => PL.pickDistrict(dist, d => { dist = d; PL.$('#p-d span', view).textContent = d; });
     PL.$('#pf', view).onsubmit = e => {
@@ -65,45 +32,74 @@
       if (em && !okMail(em)) return PL.toast('Escribe un correo válido');
       if (ph && !/^9\d{8}$/.test(ph)) return PL.toast('El celular tiene 9 dígitos y empieza con 9');
       c.name = n; c.email = em; c.phone = ph; c.district = dist;
-      if (acc) { acc.name = n; if (em) { acc.email = em; if (S.session) S.session.email = em; } }
+      if (acc) {
+        if (em && S.accounts.some(x => x !== acc && x.email === em)) return PL.toast('Ese correo ya lo usa otra cuenta');
+        if (ph && S.accounts.some(x => x !== acc && x.phone === ph)) return PL.toast('Ese celular ya lo usa otra cuenta');
+        acc.name = n; acc.email = em; acc.phone = ph || acc.phone;
+      }
       PL.save(); PL.toast('Datos guardados');
     };
     const kf = PL.$('#kf', view);
     if (kf) kf.onsubmit = async e => {
       e.preventDefault();
-      const k0 = PL.$('#k-0', view).value, k1 = PL.$('#k-1', view).value;
-      if (acc.hash !== await hash(k0)) return PL.toast('La contraseña actual no es correcta');
+      const k0El = PL.$('#k-0', view), k1 = PL.$('#k-1', view).value;
+      if (acc.hash && acc.hash !== await hash(k0El.value)) return PL.toast('La contraseña actual no es correcta');
+      if (!acc.hash && !acc.email) return PL.toast('Primero agrega tu correo y guarda tus datos');
       if (k1.length < 8) return PL.toast('La nueva contraseña debe tener al menos 8 caracteres');
       if (k1 !== PL.$('#k-2', view).value) return PL.toast('Las contraseñas no coinciden');
-      acc.hash = await hash(k1); PL.save(); kf.reset(); PL.toast('Contraseña actualizada');
+      const nueva = !acc.hash; acc.hash = await hash(k1); PL.save(); PL.toast(nueva ? 'Contraseña creada' : 'Contraseña actualizada'); PL.render();
     };
     if (location.hash.includes('clave')) PL.$('#clave', view).scrollIntoView();
   }, {tab: 'cuenta'});
 
-  /* ——— direcciones ——— */
+  PL.addrSheet = cb => {
+    const S = PL.S, list = (S.addresses || []).filter(a => a.lat);
+    PL.sheet({title: '¿Dónde necesitas el servicio?', body: `<div class="list">${list.map((a, k) => `<button type="button" data-k="${k}">${PL.ic(a.label === 'Casa' ? 'home' : a.label === 'Trabajo' ? 'bag' : 'pin')}<span>${PL.esc(a.label)}<span class="sub">${PL.esc(a.line)} · ${PL.esc(a.district)}</span></span>${S.lastLoc && S.lastLoc.lat === a.lat && S.lastLoc.lng === a.lng ? PL.ic('check', 'i chev') : ''}</button>`).join('')}
+        <a href="#/direccion" data-close>${PL.ic('plus')}<span>Agregar una dirección<span class="sub">Ubícala en el mapa</span></span>${PL.ic('chev', 'i chev')}</a></div>
+        ${list.length ? '' : '<p class="muted" style="margin-top:10px">También puedes elegir la dirección en el mapa al pedir un servicio.</p>'}`,
+      onOpen: sh => sh.querySelectorAll('[data-k]').forEach(b => b.onclick = () => { const a = list[Number(b.dataset.k)]; S.lastLoc = {lat: a.lat, lng: a.lng, line: a.line, floor: a.floor || '', ref: a.refTxt || '', district: a.district}; S.client.district = a.district; PL.save(); PL.closeSheet(); if (cb) cb(S.lastLoc); })});
+  };
+
+  /* ——— direcciones: lista y editor sobre el mapa real ——— */
+  const adIc = l => l === 'Casa' ? 'home' : l === 'Trabajo' ? 'bag' : 'pin';
   PL.route('direcciones', view => {
     const S = PL.S; S.addresses = S.addresses || [];
-    let label = 'Casa', dist = S.client.district || '';
     const draw = () => {
       view.innerHTML = page('pin', 'Tu cuenta', 'Direcciones', `
-        ${S.addresses.length ? `<div class="list">${S.addresses.map((ad, k) => `<div class="addr">${PL.ic(ad.label === 'Trabajo' ? 'bag' : ad.label === 'Casa' ? 'home' : 'pin')}<span><b>${PL.esc(ad.label)}</b><span>${PL.esc(ad.district)}${ad.ref ? ' · ' + PL.esc(ad.ref) : ''}</span></span><button class="ibtn" type="button" data-del="${k}" aria-label="Borrar ${PL.esc(ad.label)}">${PL.ic('trash')}</button></div>`).join('')}</div>` : `<p class="muted">Aún no guardas direcciones.</p>`}
-        <div class="set-sec"><h2>${PL.ic('plus')}Agregar dirección</h2>
-          <div class="chips" id="dl" style="margin-bottom:14px">${['Casa', 'Trabajo', 'Otra'].map(l => `<button class="chip" type="button" data-l="${l}" aria-pressed="${l === label}">${l}</button>`).join('')}</div>
-          <button class="in" type="button" id="dd" style="display:flex;align-items:center;gap:10px;text-align:left;cursor:pointer;margin-bottom:14px">${PL.ic('pin')}<span style="flex:1">${PL.esc(dist || 'Elige el distrito')}</span>${PL.ic('chev')}</button>
-          <label class="field"><span>Dirección y referencia</span><input class="in" id="dr" maxlength="140" placeholder="Ej.: Av. Benavides 1200, frente al parque"></label>
-          <button class="btn btn-t" type="button" id="dsave">Guardar dirección</button></div>`);
-      PL.$('#dl', view).onclick = e => { const b = e.target.closest('[data-l]'); if (b) { label = b.dataset.l; PL.$$('[data-l]', view).forEach(x => x.setAttribute('aria-pressed', x === b)); } };
-      PL.$('#dd', view).onclick = () => PL.pickDistrict(dist, d => { dist = d; PL.$('#dd span', view).textContent = d; });
-      PL.$('#dsave', view).onclick = () => {
-        const ref = PL.$('#dr', view).value.trim();
-        if (!dist) return PL.toast('Elige el distrito');
-        if (ref.length < 5) return PL.toast('Escribe la dirección y una referencia');
-        S.addresses.push({label, district: dist, ref}); PL.save(); PL.toast('Dirección guardada'); draw();
-      };
-      view.querySelectorAll('[data-del]').forEach(b => b.onclick = () => { S.addresses.splice(Number(b.dataset.del), 1); PL.save(); draw(); });
+        ${S.addresses.length ? `<div class="list">${S.addresses.map((ad, k) => `<div class="addr">${PL.ic(adIc(ad.label))}<span><b>${PL.esc(ad.label)}</b><span>${PL.esc(ad.line || ad.ref || '')}${ad.district ? ' · ' + PL.esc(ad.district) : ''}${ad.floor ? ' · ' + PL.esc(ad.floor) : ''}</span>${ad.lat ? '' : `<span class="addr-fix">${PL.ic('alert')}Ubícala en el mapa para usarla en tus pedidos</span>`}</span>
+            <a class="ibtn" href="#/direccion/${k}" aria-label="Editar ${PL.esc(ad.label)}">${PL.ic('edit')}</a><button class="ibtn" type="button" data-del="${k}" aria-label="Borrar ${PL.esc(ad.label)}">${PL.ic('trash')}</button></div>`).join('')}</div>`
+          : `<p class="muted">Aún no guardas direcciones. Guárdalas una vez y elígelas con un toque cuando pidas.</p>`}
+        <a class="btn btn-t" href="#/direccion" style="margin-top:18px">${PL.ic('plus')}Agregar dirección</a>`);
+      view.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
+        const ad = S.addresses[Number(b.dataset.del)];
+        if (!(await PL.confirm({title: `¿Borrar ${ad.label}?`, text: ad.line || ad.ref || '', ok: 'Borrar', cancel: 'Volver', danger: true}))) return;
+        S.addresses.splice(Number(b.dataset.del), 1); PL.save(); draw();
+      });
     };
     draw();
   }, {tab: 'cuenta'});
+
+  PL.route('direccion', (view, args) => {
+    const S = PL.S; S.addresses = S.addresses || [];
+    const k = args[0] != null ? Number(args[0]) : -1, old = S.addresses[k];
+    const z = d => d && PL.zone(d);
+    const loc = old && old.lat ? {lat: old.lat, lng: old.lng, line: old.line || '', floor: old.floor || '', ref: old.refTxt || '', district: old.district}
+      : old && z(old.district) ? Object.assign({lat: PL.zoneCenter(old.district)[0], lng: PL.zoneCenter(old.district)[1], line: old.ref || '', district: old.district}, {approx: true})
+      : PL.startLoc() || {lat: PL.LIMA[0], lng: PL.LIMA[1], district: 'Miraflores', approx: true};
+    view.innerHTML = `<div class="flow" data-map="l"><div class="flow-map" id="fmap"><span class="map-chip" id="mchip">${PL.ic('pin')}<span>${PL.esc(loc.district || 'Lima')}</span></span></div>
+      <section class="flow-panel"><div class="fp-h"><a class="ibtn" href="#/direcciones" aria-label="Volver">${PL.ic('back')}</a><h1>${old ? 'Editar <span class="k">dirección</span>' : 'Nueva <span class="k">dirección</span>'}</h1></div>
+      <div class="fp-b" id="fb"></div><div class="fp-f" id="ff"><button class="btn btn-t" id="dsave" type="button">Guardar dirección</button></div></section></div>`;
+    const fm = PL.map(PL.$('#fmap', view), {center: [loc.lat, loc.lng], zoom: 16, label: 'Elige el punto en el mapa'});
+    const btn = PL.$('#dsave', view);
+    const pp = PL.placePanel({fm, host: PL.$('#fb', view), loc, tip: 'Aquí es', save: true, needLabel: true, saved: false, saveAs: old ? old.label : 'Casa', saveTitle: 'Etiqueta',
+      onValid: ok => { btn.disabled = !ok; }, onZone: zz => { PL.$('#mchip span', view).textContent = zz ? zz.n : 'Fuera de la zona'; }});
+    btn.onclick = () => {
+      const L0 = pp.read(), label = pp.saveAs();
+      const ad = {label, district: L0.district, line: L0.line, floor: L0.floor, refTxt: L0.ref, ref: PL.addrText(L0), lat: L0.lat, lng: L0.lng};
+      if (old) S.addresses[k] = ad; else { if (label !== 'Otra') S.addresses = S.addresses.filter(a => a.label !== label); S.addresses.unshift(ad); }
+      pp.stop(); PL.save(); PL.toast(old ? 'Dirección actualizada' : 'Dirección guardada'); PL.go('#/direcciones');
+    };
+  }, {flow: true, tab: 'cuenta'});
 
   /* ——— billetera ——— */
   PL.route('billetera', view => {
@@ -170,7 +166,7 @@
           <label class="field"><span>Nombre y apellido</span><input class="in" id="r-n" maxlength="80" value="${PL.esc(c.name)}"></label>
           <div class="row2"><label class="field"><span>Documento</span><select class="in" id="r-dt"><option>DNI</option><option>Carné de extranjería</option><option>Pasaporte</option></select></label><label class="field"><span>Número</span><input class="in" id="r-dn" maxlength="12"></label></div>
           <label class="field"><span>Domicilio</span><input class="in" id="r-dom" maxlength="140"></label>
-          <div class="row2"><label class="field"><span>Celular</span><input class="in" id="r-c" type="tel" maxlength="9" value="${PL.esc(c.phone)}"></label><label class="field"><span>Correo</span><input class="in" id="r-e" type="email" value="${PL.esc((S.account && S.account.email) || c.email || '')}"></label></div>
+          <div class="row2"><label class="field"><span>Celular</span><input class="in" id="r-c" type="tel" maxlength="9" value="${PL.esc(c.phone)}"></label><label class="field"><span>Correo</span><input class="in" id="r-e" type="email" value="${PL.esc((PL.me() && PL.me().email) || c.email || '')}"></label></div>
           <label class="check"><input type="checkbox" id="r-men"><span>Soy menor de edad</span></label>
           <label class="field" id="r-tutor" hidden><span>Nombre del padre, madre o apoderado</span><input class="in" id="r-tn" maxlength="80"></label>
         </div>

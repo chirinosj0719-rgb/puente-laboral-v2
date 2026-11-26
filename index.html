@@ -12,9 +12,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,400..800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/app.css">
-<link rel="stylesheet" href="css/vistas.css">
-<link rel="stylesheet" href="css/flujo.css">
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css">
+<link rel="stylesheet" href="css/app.css?v=20261126l">
+<link rel="stylesheet" href="css/vistas.css?v=20261126l">
+<link rel="stylesheet" href="css/flujo.css?v=20261126l">
 </head>
 <body class="landing">
 <a class="skip" href="#land">Saltar al contenido</a>
@@ -27,6 +29,7 @@
   <nav class="nav" aria-label="Secciones">
     <a href="#como" data-to="como">Cómo funciona</a>
     <a href="#empresas" data-to="empresas">Empresas</a>
+    <a href="#zona" data-to="zona">Zonas</a>
     <a href="#seguridad" data-to="seguridad">Seguridad</a>
     <a href="#trabajar" data-to="trabajar">Para trabajadores</a>
   </nav>
@@ -38,11 +41,15 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <dialog class="sheet" id="sheet" aria-labelledby="sheetT"></dialog>
 
-<script src="js/data.js"></script>
-<script src="js/core.js"></script>
-<script src="js/menu.js"></script>
-<script src="js/mapa.js"></script>
-<script src="js/empresas.js"></script>
-<script src="js/landing.js"></script>
+<script src="js/data.js?v=20261126l"></script>
+<script src="js/core.js?v=20261126l"></script>
+<script src="js/menu.js?v=20261126l"></script>
+<script src="vendor/leaflet/leaflet.js"></script>
+<script src="vendor/maplibre/maplibre-gl.js"></script>
+<script src="vendor/maplibre/leaflet-maplibre-gl.js"></script>
+<script src="js/zonas.js?v=20261126l"></script>
+<script src="js/mapa.js?v=20261126l"></script>
+<script src="js/empresas.js?v=20261126l"></script>
+<script src="js/landing.js?v=20261126l"></script>
 </body>
 </html>

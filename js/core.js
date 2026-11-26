@@ -12,6 +12,7 @@
   PL.rnd = (a, b) => a + Math.random() * (b - a);
   PL.ri = (a, b) => Math.floor(PL.rnd(a, b + 1));
   PL.pick = a => a[Math.floor(Math.random() * a.length)];
+  PL.fmtPhone = p => String(p || '').replace(/^(\d{3})(\d{3})(\d{3})$/, '$1 $2 $3');
   PL.uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   PL.norm = s => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
   PL.svc = id => PL.SVCS.find(s => s.id === id);
@@ -42,8 +43,15 @@
   }
   PL.S = load();
   PL.S.favs = PL.S.favs || [];
+  /* cuentas: puede haber varias en el dispositivo; la sesión apunta a una (antes era una sola en S.account) */
+  (S => {
+    S.accounts = S.accounts || [];
+    if (S.account) { if (!S.accounts.some(a => a.email && a.email === S.account.email)) S.accounts.push(Object.assign({id: 'a' + Date.now().toString(36)}, S.account)); delete S.account; }
+    if (S.session && !S.session.id) { const a = S.accounts.find(x => x.email && x.email === S.session.email); S.session = a ? {id: a.id, at: S.session.at} : null; }
+  })(PL.S);
+  PL.me = () => (PL.S.session && (PL.S.accounts || []).find(a => a.id === PL.S.session.id)) || null;
   PL.save = () => { try { localStorage.setItem(C.STORE, JSON.stringify(PL.S)); } catch (e) {} PL.updateDot(); };
-  PL.reset = () => { try { localStorage.removeItem(C.STORE); } catch (e) {} PL.S = DEF(); PL.updateDot(); };
+  PL.reset = () => { try { localStorage.removeItem(C.STORE); } catch (e) {} PL.S = DEF(); PL.S.accounts = []; PL.updateDot(); };
 
   PL.ACTIVE = ['buscando', 'programado', 'en_camino', 'llego', 'trabajando', 'pagar', 'calificar'];
   PL.order = id => PL.S.orders.find(o => o.id === id);
@@ -88,6 +96,7 @@
     if (!first) { window.scrollTo(0, 0); view.focus({preventScroll: true}); }
     first = false;
     PL.updateDot();
+    if (PL.syncTop) PL.syncTop();
   };
 
   /* ——— aviso flotante ——— */
@@ -127,11 +136,12 @@
       body: `<label class="search-box">${PL.ic('search')}<span class="sr">Buscar distrito</span><input id="dq" type="search" placeholder="Busca tu distrito" autocomplete="off"></label><div class="list" id="dlist"></div>`,
       onOpen: s => {
         const inp = s.querySelector('#dq'), list = s.querySelector('#dlist');
+        const row = d => `<button type="button" data-d="${PL.esc(d)}">${PL.ic('pin')}<span>${PL.esc(d)}</span>${d === current ? PL.ic('check', 'i chev') : ''}</button>`;
         const draw = () => {
-          const raw = inp.value.trim(), q = PL.norm(raw);
-          const arr = PL.DISTRICTS.filter(d => PL.norm(d).includes(q));
-          list.innerHTML = arr.map(d => `<button type="button" data-d="${PL.esc(d)}">${PL.ic('pin')}<span>${PL.esc(d)}</span>${d === current ? PL.ic('check', 'i chev') : ''}</button>`).join('')
-            || `<button type="button" data-d="${PL.esc(raw)}">${PL.ic('plus')}<span>Usar “${PL.esc(raw)}”</span></button>`;
+          const raw = inp.value.trim(), q = PL.norm(raw), f = a => a.filter(d => PL.norm(d).includes(q));
+          const lima = f(PL.DISTRICTS_LIMA || PL.DISTRICTS), playa = f(PL.DISTRICTS_PLAYA || []);
+          list.innerHTML = (lima.length ? `<p class="mg">Lima</p>${lima.map(row).join('')}` : '') + (playa.length ? `<p class="mg">Playas</p>${playa.map(row).join('')}` : '')
+            || `<p class="muted" style="padding:10px 4px">Todavía no llegamos a “${PL.esc(raw)}”. Atendemos Lima central y las playas de Ancón, La Punta y el sur hasta San Bartolo.</p>`;
         };
         inp.oninput = draw; draw();
         list.onclick = e => { const b = e.target.closest('[data-d]'); if (!b || !b.dataset.d) return; cb(b.dataset.d); PL.closeSheet(); };

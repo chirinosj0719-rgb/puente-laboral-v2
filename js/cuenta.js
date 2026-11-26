@@ -11,7 +11,7 @@
   ];
 
   PL.route('cuenta', view => {
-    const S = PL.S, acc = S.session && S.account;
+    const S = PL.S, acc = PL.me();
     const name = (acc && acc.name) || S.client.name;
     view.innerHTML = `<div class="wrap"><div class="page-h"><span class="eti">${PL.ic('user')}Tu cuenta</span><h1>${name ? `Hola, <span class="k">${PL.esc(name.split(' ')[0])}</span>` : 'Tu cuenta'}</h1></div>
       <div class="acc">

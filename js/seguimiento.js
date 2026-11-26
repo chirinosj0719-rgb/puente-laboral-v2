@@ -5,9 +5,9 @@
 
   function set(o, status){ o.status = status; o.stageAt = Date.now(); PL.save(); PL.render(); }
   function shell(view, o, size, title, back = '#/pedidos'){
-    view.innerHTML = `<div class="flow" data-map="${size}"><div class="flow-map" id="fmap"><span class="map-chip">${PL.ic('pin')}<span>${PL.esc(o.district)}</span></span></div>
+    view.innerHTML = `<div class="flow" data-map="${size}"><div class="flow-map" id="fmap"><span class="map-chip">${PL.ic('pin')}<span>${PL.esc(o.line ? o.line : o.district)}</span></span></div>
       <section class="flow-panel"><div class="fp-h"><a class="ibtn" href="${back}" aria-label="Volver">${PL.ic('back')}</a><h1>${title}</h1></div><div class="fp-b" id="fb"></div><div class="fp-f" id="ff" hidden></div></section></div>`;
-    return {map: PL.map(PL.$('#fmap', view), {seed: o.district, label: 'Mapa del pedido'}), fb: PL.$('#fb', view), ff: PL.$('#ff', view)};
+    return {map: PL.map(PL.$('#fmap', view), {center: o.lat ? [o.lat, o.lng] : null, seed: o.district, zoom: 15, label: 'Mapa del pedido'}), fb: PL.$('#fb', view), ff: PL.$('#ff', view)};
   }
   const wName = o => PL.short(o.worker.name) + (o.people > 1 ? ' y equipo' : '');
 
@@ -42,10 +42,11 @@
     function spawn(){
       const w = PL.fakeWorker(used); used.push(w.name);
       const price = o.price, id = 'of' + (++spawned), team = o.people > 1;
-      map.addPin(id, w);
+      const wp = map.addPin(id, w); w.pos = [wp.lat, wp.lng]; w.km = PL.km(map.me, w.pos); w.eta = PL.etaMin(w.km);
+      map.fit(null, {max: 15.5});
       const el = document.createElement('article');
       el.className = 'offer rise' + (spawned === 1 ? ' best' : ''); el.dataset.id = id;
-      el.innerHTML = `<div class="of-top">${PL.avatar(w.name, w.color)}<div class="of-who"><b>${PL.esc(PL.short(w.name))}${team ? ' y equipo' : ''}</b><div class="meta"><span>${prog ? 'Disponible ' + PL.esc(PL.dayName(o.when.date).toLowerCase()) : 'Llega en ' + w.eta + ' min'}</span><button class="prof-link" type="button" data-prof>Ver perfil</button></div></div><div class="of-pr"><b>${PL.money(price)}</b><span class="same">Acepta tu precio</span></div></div>
+      el.innerHTML = `<div class="of-top">${PL.avatar(w.name, w.color)}<div class="of-who"><b>${PL.esc(PL.short(w.name))}${team ? ' y equipo' : ''}</b><div class="meta"><span>${prog ? 'Disponible ' + PL.esc(PL.dayName(o.when.date).toLowerCase()) : 'Llega en ' + w.eta + ' min'} · a ${String(w.km.toFixed(1)).replace('.', ',')} km</span><button class="prof-link" type="button" data-prof>Ver perfil</button></div></div><div class="of-pr"><b>${PL.money(price)}</b><span class="same">Acepta tu precio</span></div></div>
         <div class="of-badges"><span class="pill v">${PL.ic('check')}DNI verificado</span>${prog && o.repeat !== 'no' ? `<span class="pill o">Puede ${PL.esc(PL.REPEAT[o.repeat].toLowerCase())}</span>` : ''}${team ? `<span class="pill o">${PL.ic('users')}Equipo de ${o.people}</span>` : ''}</div>
         <div class="of-acts"><button class="ibtn" type="button" data-no aria-label="Rechazar">${PL.ic('x')}</button><button class="btn btn-l btn-sm" type="button" data-chat>${PL.ic('chat')}Escribir</button><button class="btn btn-t btn-sm" type="button" data-ok>Aceptar ${PL.money(price)}</button></div>
         ${prog ? '' : '<i class="of-bar" aria-hidden="true"><i style="animation-duration:30s"></i></i>'}`;
@@ -55,7 +56,7 @@
       el.querySelector('[data-no]').onclick = () => { el.dataset.hold = ''; kill(); };
       const accept = amt => {
         o.worker = w; o.price = amt || price; o.pin = String(PL.ri(1000, 9999)); o.eta = w.eta; o.chat = o.qs && o.qs[w.name] ? o.qs[w.name].msgs.filter(m => m.t) : [];
-        o.wpos = null;
+        o.wpos = w.pos || null; o.route = null;
         PL.toast(`${PL.short(w.name)} aceptó tu pedido`);
         set(o, prog ? 'programado' : 'en_camino');
       };
@@ -113,8 +114,9 @@
     const svc = PL.svc(o.svc), w = o.worker, s = o.status;
     const T = {programado: 'Pedido <span class="k">programado</span>', en_camino: 'En <span class="k">camino</span>', llego: '¡<span class="k">Llegó!</span>', trabajando: 'Trabajando<span class="k">…</span>'};
     const {map, fb, ff} = shell(view, o, s === 'trabajando' || s === 'programado' ? 's' : 'l', T[s]);
-    const pos = map.addPin('w', w, o.wpos || undefined);
-    if (!o.wpos) { o.wpos = pos; PL.save(); }
+    const pos = map.addPin('w', w, PL.ll(o.wpos) || undefined);
+    if (!PL.ll(o.wpos)) { o.wpos = [pos.lat, pos.lng]; PL.save(); }
+    if (s === 'en_camino' || s === 'programado') map.fit(['w'], {max: 16}); else map.setMe(map.me, {zoom: 16.5});
     const idx = {programado: 0, en_camino: 1, llego: 2, trabajando: 3}[s];
     const head = {
       programado: `<h2>${PL.esc(wName(o))} va a ir</h2><div class="eta"><b>${(() => { const d = Math.round((new Date(o.when.date + 'T00:00') - new Date(PL.isoDay(new Date()) + 'T00:00')) / 864e5); return d <= 0 ? 'Hoy' : d === 1 ? 'Mañana' : 'En ' + d + ' días'; })()}</b><span>${PL.esc(PL.fhm(o.when.time))}</span></div>`,
@@ -151,12 +153,19 @@
     const el = Date.now() - (o.stageAt || Date.now());
     if (s === 'en_camino') {
       const etaEl = PL.$('#eta', fb);
-      PL.loop(() => {
+      const run = () => PL.loop(() => {
         const p = Math.min(1, (Date.now() - o.stageAt) / DUR.en_camino);
         map.move('w', p);
         etaEl.textContent = Math.max(1, Math.ceil(o.eta * (1 - p))) + ' min';
         if (p >= 1) { advance('llego'); return false; }
       });
+      /* recorrido por calles: se pide una vez y se guarda en el pedido */
+      if (o.route && o.route.length > 1) { map.setPath('w', o.route); run(); }
+      else {
+        let started = false; const go1 = () => { if (!started) { started = true; run(); } };
+        PL.later(go1, 2500);
+        map.route('w').then(r => { if (!r || !view.isConnected) { go1(); return; } o.route = r.full; if (!started) { o.eta = r.min; etaEl.textContent = o.eta + ' min'; } PL.save(); go1(); });
+      }
     } else if (s === 'llego' || s === 'trabajando') {
       map.move('w', 1);
       PL.later(() => advance(NEXT[s]), Math.max(800, DUR[s] - el));
@@ -312,7 +321,7 @@
   function pay(view, o){
     const w = o.worker, base = PL.total(o);
     const {map, fb, ff} = shell(view, o, 's', `Paga a <span class="k">${PL.esc(PL.short(w.name))}</span>`);
-    map.addPin('w', w, o.wpos || undefined); map.move('w', 1);
+    map.addPin('w', w, PL.ll(o.wpos) || undefined); map.move('w', 1);
     let tip = 0, m = o.pay;
     const tips = base >= 200 ? [0, 10, 20, 30] : [0, 2, 5, 10];
     fb.innerHTML = `<div class="pay-tot"><b id="pt"></b><span>${PL.esc(PL.svc(o.svc).n)} · trabajo terminado</span></div>
@@ -339,7 +348,7 @@
   function rate(view, o){
     const w = o.worker;
     const {map, fb, ff} = shell(view, o, 's', '¿Cómo te <span class="k">fue?</span>');
-    map.addPin('w', w, o.wpos || undefined); map.move('w', 1);
+    map.addPin('w', w, PL.ll(o.wpos) || undefined); map.move('w', 1);
     let stars = 0, tags = [];
     const GOOD = ['Puntual', 'Buen trabajo', 'Amable', 'Dejó todo limpio', 'Buen precio'], BAD = ['Llegó tarde', 'Trabajo incompleto', 'Mal trato', 'Cobró de más', 'Dejó desorden'];
     fb.innerHTML = `<div style="text-align:center">${PL.avatar(w.name, w.color, 'l').replace('class="av l"', 'class="av l" style="margin:0 auto 10px;background:' + w.color + '"')}<b style="font:800 1.3rem var(--f-t)">${PL.esc(w.name)}</b><p class="muted">${PL.esc(PL.svc(o.svc).n)} · ${PL.esc(PL.fdate(o.paidAt || Date.now()))}</p></div>
@@ -381,7 +390,7 @@
   function receipt(view, o){
     const svc = PL.svc(o.svc), done = o.status === 'terminado';
     const {map, fb} = shell(view, o, 's', done ? 'Pedido <span class="k">terminado</span>' : 'Pedido <span class="k">cancelado</span>');
-    if (o.worker) { map.addPin('w', o.worker, o.wpos || undefined); if (done) map.move('w', 1); }
+    if (o.worker) { map.addPin('w', o.worker, PL.ll(o.wpos) || undefined); if (done) map.move('w', 1); }
     fb.innerHTML = `${done ? `<div class="done-ic">${PL.ic('check')}</div>` : ''}
       <div class="sum" style="margin-top:0"><dl class="dl"><dt>Servicio</dt><dd>${PL.esc(svc.n)}</dd>${o.tasks.length ? `<dt>Trabajo</dt><dd>${PL.esc(o.tasks.join(', '))}</dd>` : ''}${o.worker ? `<dt>Trabajador</dt><dd>${PL.esc(o.worker.name)}${o.people > 1 ? ` y equipo (${o.people})` : ''}</dd>` : ''}<dt>Cuándo</dt><dd>${PL.esc(PL.whenText(o.when))}</dd><dt>Dónde</dt><dd>${PL.esc(o.district)}</dd><dt>Precio</dt><dd>${PL.money(PL.total(o))}</dd>${o.tip ? `<dt>Propina</dt><dd>${PL.money(o.tip)}</dd>` : ''}${done ? `<dt>Total</dt><dd>${PL.money(PL.total(o) + (o.tip || 0))}</dd><dt>Pago</dt><dd style="text-transform:capitalize">${PL.esc(o.pay)}</dd>` : ''}${o.rating ? `<dt>Tu nota</dt><dd>${PL.starsH(o.rating)}</dd>` : ''}</dl></div>
       ${o.nextId && PL.order(o.nextId) ? `<a class="when-sum" href="#/pedido/${o.nextId}" style="text-decoration:none;margin-top:12px">${PL.ic('cal')}<span><b>Próxima vez: ${PL.esc(PL.whenText(PL.order(o.nextId).when))}</b><br><span class="muted">${PL.REPEAT[o.repeat]} con ${PL.esc(PL.short(o.worker.name))}</span></span></a>` : ''}

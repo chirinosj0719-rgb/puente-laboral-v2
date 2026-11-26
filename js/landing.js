@@ -11,7 +11,7 @@
   function render(){
     const land = PL.$('#land');
     document.body.dataset.view = 'inicio';
-    const words = [['gasfitero', 'Gasfitero'], ['ninera', 'Niñera'], ['veterinaria', 'Veterinaria'], ['electricista', 'Electricista'], ['limpieza', 'Limpieza'], ['mudanza', 'Mudanzas'], ['chofer', 'Chofer'], ['adulto', 'Cuidado'], ['jardinero', 'Jardinero'], ['cerrajero', 'Cerrajero'], ['dj', 'DJ'], ['profesor', 'Clases']].map(([id, label]) => Object.assign({label}, PL.svc(id)));
+    const words = [['gasfitero', 'Gasfitero'], ['todero', 'Maestro para todo'], ['ninera', 'Niñera'], ['cargador', 'Cargar y mover'], ['veterinaria', 'Veterinaria'], ['electricista', 'Electricista'], ['limpieza', 'Limpieza'], ['mudanza', 'Mudanzas'], ['chofer', 'Chofer'], ['adulto', 'Cuidado'], ['jardinero', 'Jardinero'], ['cerrajero', 'Cerrajero'], ['dj', 'DJ'], ['profesor', 'Clases']].map(([id, label]) => Object.assign({label}, PL.svc(id)));
     const appLink = h => h.replace(/href="#\//g, `href="${APP}#/`);
     land.innerHTML = `
     <section class="hero"><div class="hero-in">
@@ -51,6 +51,14 @@
         <div class="ords">${appLink(PL.bizList().slice(0, 6).map(PL.bizRow).join(''))}</div>
         <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:24px"><a class="btn btn-t" href="${APP}#/empresas">Ver empresas<span class="arr">${PL.ic('arrow')}</span></a><a class="btn btn-l" href="empresas.html">Registrar mi empresa</a></div>
       </section>
+      <section class="zona" id="zona" aria-label="Dónde atendemos">
+        <div class="zona-txt"><span class="eti">${PL.ic('pin')}Dónde atendemos</span><h2>Lima, de Ancón a San Bartolo.</h2>
+          <p>Lima central y las playas donde más se contrata. Cada dirección se ubica en el mapa y se revisa que quede dentro de la zona.</p>
+          <div class="zona-cols"><div><p class="mg">Lima</p><ul>${PL.DISTRICTS_LIMA.map(d => `<li><button type="button" data-z="${PL.esc(d)}" aria-pressed="false">${PL.esc(d)}</button></li>`).join('')}</ul></div>
+            <div><p class="mg">Playas</p><ul>${PL.DISTRICTS_PLAYA.map(d => `<li><button type="button" data-z="${PL.esc(d)}" aria-pressed="false">${PL.esc(d)}</button></li>`).join('')}</ul><button class="btn btn-l btn-sm" type="button" id="zall" style="margin-top:18px">Ver toda la zona</button></div></div>
+        </div>
+        <div class="zona-map zmap" id="zmap"></div>
+      </section>
       <section class="safe" id="seguridad">
         <div class="safe-h"><span class="eti">${PL.ic('shield')}Seguridad</span><h2>Seguridad en cada servicio.</h2><p>Cada persona y cada empresa pasa un filtro antes de su primer pedido.</p></div>
         <ul>
@@ -64,7 +72,7 @@
       </section>
       <section class="cta-work" id="trabajar">
         <div><span class="eti">${PL.ic('bag')}Para quienes trabajan</span><h2 style="margin-top:14px">Ofrece tus servicios con Agéndalo.</h2><a class="btn btn-w" href="${APP}#/trabajar" style="margin-top:28px">Quiero trabajar<span class="arr">${PL.ic('arrow')}</span></a> <a class="btn btn-dl" href="empresas.html" style="margin-top:28px">Registrar mi empresa</a></div>
-        <ul><li>Tú pones tus horarios</li><li>Trabajos cerca de casa</li><li>Cobras directo</li><li>Clientes que repiten</li></ul>
+        <ul><li>Tú pones tus horarios</li><li>Trabajos cerca de casa</li><li>Cobras directo</li><li>Clientes que repiten</li><li>Sin oficio también: cargar, ordenar, encargos</li></ul>
       </section>
       <section class="land-end">
         <h2>Solicita tu primer servicio.</h2>
@@ -92,8 +100,36 @@
       if (!matchMedia('(prefers-reduced-motion: reduce)').matches) setTimeout(() => setInterval(() => { k = (k + 1) % ws.length; show(); }, 2600), b * 1300);
     });
     wheel(words);
+    zona(land);
     /* menú: baja a cada sección sin cambiar el hash */
     document.addEventListener('click', e => { const a = e.target.closest('[data-to]'); if (!a) return; const t = document.getElementById(a.dataset.to); if (t) { e.preventDefault(); t.scrollIntoView({behavior: 'smooth'}); } });
+  }
+
+  /* zona de servicio en el mapa real: tocar un distrito lo marca y acerca el mapa */
+  function zona(land){
+    const host = PL.$('#zmap', land); if (!host || !window.L) return;
+    const ALL = [[-12.41, -77.19], [-11.76, -76.76]];
+    const btns = PL.$$('[data-z]', land);
+    let zm = null;
+    const focus = n => {
+      btns.forEach(b => b.setAttribute('aria-pressed', b.dataset.z === n));
+      if (!zm || !zm.map) return;
+      zm.zones.highlight(n ? [n] : []);
+      const z = n && PL.zone(n);
+      /* en las playas, el límite del distrito incluye cerros y desierto: se centra en el pueblo */
+      if (z && z.g === 'playa') zm.map.flyTo(z.c, 13.5, {duration: .8});
+      else if (z) zm.map.flyToBounds(L.polygon(z.p).getBounds(), {padding: [40, 40], maxZoom: 14.5, duration: .8});
+      else zm.map.flyToBounds(ALL, {padding: [20, 20], duration: .8});
+    };
+    /* el mapa se crea al acercarse a la sección, para no cargarlo si nadie baja */
+    const make = () => {
+      if (zm) return;
+      zm = PL.map(host, {center: [-12.1, -77.0], zoom: 10.5, minZoom: 9.5, drag: false, me: false, zones: {mask: true, onClick: focus}, label: 'Zona de servicio de Agéndalo'});
+      if (zm.map) requestAnimationFrame(() => { zm.map.invalidateSize(); zm.map.fitBounds(ALL, {padding: [24, 24], animate: false}); });
+    };
+    if ('IntersectionObserver' in window) { const io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) { make(); io.disconnect(); } }, {rootMargin: '400px'}); io.observe(host); } else make();
+    btns.forEach(b => b.onclick = () => { make(); focus(b.dataset.z); });
+    PL.$('#zall', land).onclick = () => { make(); focus(''); };
   }
 
   /* rueda de oficios que gira con el scroll (como la de tasteskill): la sección se queda fija y las palabras giran en un cilindro */

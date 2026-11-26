@@ -5,8 +5,14 @@ window.PL = window.PL || {};
 
 PL.CFG = {
   SHEETS_URL: '',             // URL de Apps Script (/exec) para guardar registros y pedidos en Google Sheets
-  STORE: 'puente-laboral-v2'  // clave de guardado en este dispositivo
+  STORE: 'puente-laboral-v2', // clave de guardado en este dispositivo
+  /* ID de cliente OAuth 2.0 de Google (tipo "Aplicación web"), termina en .apps.googleusercontent.com.
+     Es público: va en el código. Mientras esté vacío, no aparece el botón de Google. */
+  GOOGLE_CLIENT_ID: ''
 };
+
+/* trazo del símbolo (check escalonado), viewBox "15 25 90 70" */
+PL.LOGO_D = 'M15 57.5A2.5 2.5 0 0 1 17.5 55L32.5 55A2.5 2.5 0 0 1 35 57.5L35 64A1 1 0 0 0 36 65L54 65A1 1 0 0 0 55 64L55 57.5A2.5 2.5 0 0 1 57.5 55L64 55A1 1 0 0 0 65 54L65 47.5A2.5 2.5 0 0 1 67.5 45L74 45A1 1 0 0 0 75 44L75 37.5A2.5 2.5 0 0 1 77.5 35L84 35A1 1 0 0 0 85 34L85 27.5A2.5 2.5 0 0 1 87.5 25L95 25A10 10 0 0 1 105 35L105 42.5A2.5 2.5 0 0 1 102.5 45L96 45A1 1 0 0 0 95 46L95 52.5A2.5 2.5 0 0 1 92.5 55L86 55A1 1 0 0 0 85 56L85 62.5A2.5 2.5 0 0 1 82.5 65L76 65A1 1 0 0 0 75 66L75 72.5A2.5 2.5 0 0 1 72.5 75L66 75A1 1 0 0 0 65 76L65 82.5A2.5 2.5 0 0 1 62.5 85L56 85A1 1 0 0 0 55 86L55 92.5A2.5 2.5 0 0 1 52.5 95L37.5 95A2.5 2.5 0 0 1 35 92.5L35 86A1 1 0 0 0 34 85L27.5 85A2.5 2.5 0 0 1 25 82.5L25 76A1 1 0 0 0 24 75L17.5 75A2.5 2.5 0 0 1 15 72.5Z';
 
 PL.REPEAT = {no:'Solo una vez', semana:'Cada semana', quincena:'Cada 15 días', mes:'Cada mes'};
 PL.REPEAT_DAYS = {semana:7, quincena:14, mes:30};
@@ -15,6 +21,7 @@ PL.UNITS = {trabajo:'por trabajo', hora:'por hora', dia:'por día', turno:'por t
 
 PL.CATS = [
   {id:'hogar',   name:'Reparaciones'},
+  {id:'ayuda',   name:'Ayuda y encargos'},
   {id:'casa',    name:'Limpieza y casa'},
   {id:'cuidado', name:'Cuidado'},
   {id:'mudanza', name:'Mudanzas y transporte'},
@@ -84,10 +91,21 @@ PL.SVCS = [
   {id:'vigilante', n:'Vigilante y portero', c:'negocio', i:'por', u:'turno', team:1, t:['Turno de día','Turno de noche','Edificio','Obra']},
   {id:'limpiezaof', n:'Limpieza de oficinas y locales', c:'negocio', i:'limp', u:'turno', team:1, t:['Oficina','Local comercial','Después de un evento']},
 
+  /* ayuda y encargos: no es un oficio formal, pero se necesita (y mucha gente busca estos trabajos) */
+  {id:'todero', n:'Maestro para todo', c:'ayuda', i:'herr', u:'trabajo', t:['Arreglo pequeño','Colgar cuadros o repisas','Instalar cortinas','Cambiar focos o enchufes','Ajustar puertas y chapas']},
+  {id:'cargador', n:'Ayudante para cargar', c:'ayuda', i:'carga', u:'hora', team:1, t:['Subir o bajar cosas','Mover muebles en casa','Descargar un camión','Cargar compras']},
+  {id:'deposito', n:'Ordenar depósito o cochera', c:'ayuda', i:'caja', u:'trabajo', t:['Sacar y ordenar cosas','Separar lo que se bota','Limpiar el espacio','Armar estantes']},
+  {id:'desmonte', n:'Recojo de desmonte y cachivaches', c:'ayuda', i:'desm', u:'trabajo', t:['Desmonte de obra','Muebles viejos','Cachivaches','Ramas y hojas']},
+  {id:'mandados', n:'Mandados y colas', c:'ayuda', i:'mand', u:'hora', t:['Hacer una cola','Recoger un paquete','Pagar recibos','Hacer compras']},
+  {id:'mano', n:'Una mano por horas', c:'ayuda', i:'hora', u:'hora', team:1, t:['Ayuda en casa','Ayuda en un evento','Ayuda en tu negocio','Lo que necesites']},
   {id:'otro', n:'Otro trabajo', c:'hogar', i:'otr', u:'trabajo', t:[], other:1}
 ];
 
-PL.DISTRICTS = ['Ancón','Ate','Barranco','Bellavista','Breña','Callao','Carabayllo','Carmen de la Legua','Chaclacayo','Chorrillos','Cieneguilla','Comas','El Agustino','Independencia','Jesús María','La Molina','La Perla','La Punta','La Victoria','Cercado de Lima','Lince','Los Olivos','Lurigancho-Chosica','Lurín','Magdalena del Mar','Mi Perú','Miraflores','Pachacámac','Pucusana','Pueblo Libre','Puente Piedra','Punta Hermosa','Punta Negra','Rímac','San Bartolo','San Borja','San Isidro','San Juan de Lurigancho','San Juan de Miraflores','San Luis','San Martín de Porres','San Miguel','Santa Anita','Santa María del Mar','Santa Rosa','Santiago de Surco','Surquillo','Ventanilla','Villa El Salvador','Villa María del Triunfo'];
+/* Zona de servicio: Lima central y moderna, y las playas donde más se contrata (Ancón, La Punta y el sur hasta San Bartolo).
+   Los límites reales de cada distrito están en js/zonas.js. */
+PL.DISTRICTS_LIMA = ['Barranco','Breña','Cercado de Lima','Chorrillos','Jesús María','La Molina','La Victoria','Lince','Magdalena del Mar','Miraflores','Pueblo Libre','San Borja','San Isidro','San Luis','San Miguel','Santiago de Surco','Surquillo'];
+PL.DISTRICTS_PLAYA = ['Ancón','La Punta','Punta Hermosa','Punta Negra','Santa María del Mar','San Bartolo'];
+PL.DISTRICTS = PL.DISTRICTS_LIMA.concat(PL.DISTRICTS_PLAYA);
 
 /* Perfiles de ejemplo: solo para el modo demo. */
 PL.DEMO = {
@@ -98,6 +116,11 @@ PL.DEMO = {
 
 /* Íconos de oficios (48×48, trazo) */
 PL.SI = {
+  herr:'<rect x="6" y="18" width="36" height="22" rx="3"/><path d="M18 18v-6h12v6M6 28h36M21 28v4h6v-4"/>',
+  carga:'<path d="M7 8h5l7 26h21"/><circle cx="21" cy="39" r="3.5"/><rect x="19" y="13" width="18" height="15" rx="2"/><path d="M26 13v5h4v-5"/>',
+  desm:'<path d="M9 14h30M18 14V9h12v5M13 14l2 26h18l2-26"/><path d="M21 20v14M27 20v14"/>',
+  mand:'<path d="M10 16h28l-3 24H13z"/><path d="M18 16a6 6 0 0 1 12 0"/><path d="M19 27l4 4 7-8"/>',
+  hora:'<circle cx="24" cy="27" r="14"/><path d="M24 27v-7M24 27l5 3M20 7h8M24 7v6"/>',
   limp:'<path d="M10 20h28l-3 22H13z"/><path d="M15 20c0-9 18-9 18 0"/>',
   bar:'<path d="M8 10h32L24 28z"/><path d="M24 28v12M16 40h16"/>',
   seg:'<path d="M24 6l14 5v11c0 9-6 16-14 20C16 38 10 31 10 22V11z"/><path d="M18 24l5 5 8-9"/>',
@@ -184,5 +207,10 @@ PL.UI = {
   logout:'<path d="M14 4h5v16h-5M10 8l-4 4 4 4M6 12h10"/>',
   lock:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
   mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',
+  eye:'<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>',
+  eyeoff:'<path d="M3 3l18 18M10.6 6.1A9.6 9.6 0 0 1 12 6c6 0 9.5 6 9.5 6a16 16 0 0 1-3 3.7M6.6 6.9C4 8.6 2.5 12 2.5 12s3.5 6 9.5 6a9 9 0 0 0 4.4-1.1M9.9 9.9a3 3 0 0 0 4.2 4.2"/>',
+  locate:'<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>',
+  tool:'<path d="M14.5 6.5a4 4 0 0 0 5 5L12 19a2.1 2.1 0 0 1-3-3l7.5-7.5a4 4 0 0 0-2-2z"/><path d="M14.5 6.5L17 4l3 3-2.5 2.5"/>',
+  note:'<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/>',
   wa:'<path d="M4.5 20l1.2-3.8A8 8 0 1 1 8.3 19z"/><path d="M9.2 8.6c.2 2.6 3.1 5.6 5.9 5.9l1.1-1.4-1.9-1-1 .9c-1-.4-2.1-1.5-2.5-2.5l.9-1-1-1.9z"/>'
 };

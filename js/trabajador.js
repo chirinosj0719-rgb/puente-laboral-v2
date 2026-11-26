@@ -43,7 +43,7 @@
         <div class="otp" id="otp" hidden><p>Escribe el código de 4 dígitos que te enviamos por SMS.</p><div class="pin-in">${[0, 1, 2, 3].map(i => `<input inputmode="numeric" maxlength="1" aria-label="Dígito ${i + 1}" data-o="${i}">`).join('')}</div></div>
         <label class="field"><span>Nombre completo</span><input class="in" id="f-name" autocomplete="name" maxlength="60" value="${PL.esc(D.name)}"></label>
         <div class="row2"><label class="field"><span>DNI</span><input class="in" id="f-dni" inputmode="numeric" maxlength="8" autocomplete="off" value="${PL.esc(D.dni)}"></label><label class="field"><span>Edad</span><input class="in" id="f-age" type="number" inputmode="numeric" min="18" max="75" value="${PL.esc(D.age)}"></label></div>`,
-      () => `<h1>¿Qué <span class="k">sabes hacer?</span></h1><p class="lead">Elige hasta 5 oficios. Solo te llegarán pedidos de estos.</p>
+      () => `<h1>¿Qué <span class="k">sabes hacer?</span></h1><p class="lead">Elige hasta 5. Solo te llegarán pedidos de estos.</p><p class="trade-note">${PL.ic('users')}<span><b>¿No tienes un oficio?</b> En «Ayuda y encargos» puedes ofrecer una mano: cargar, ordenar un depósito, hacer mandados o arreglos pequeños.</span></p>
         <div id="trades">${PL.CATS.map(c => `<div class="trade-g"><h3>${c.name}</h3><div class="chips">${PL.SVCS.filter(s => s.c === c.id && !s.other).map(s => `<button class="chip" type="button" data-s="${s.id}" aria-pressed="${D.trades.includes(s.id)}">${PL.esc(s.n)}</button>`).join('')}</div></div>`).join('')}</div>
         <label class="field"><span>Experiencia</span><select class="in" id="f-exp">${EXP.map(e => `<option${e === D.exp ? ' selected' : ''}>${e}</option>`).join('')}</select></label>`,
       () => `<h1>¿Dónde y <span class="k">cuándo?</span></h1><p class="lead">Te mostramos trabajos en los distritos que elijas.</p>
@@ -159,7 +159,9 @@
       <div class="drv-bottom"><div id="active"></div><div id="feed" aria-live="polite"></div></div>
     </section>
     <div class="wrap"><div class="w-grid"><div class="w-col" id="side"></div></div></div>${PL.footer()}`;
-    const map = PL.map(PL.$('#dmap', view), {seed: W.district || 'lima', label: 'Tu zona'});
+    if (!PL.ll(W.pos) || !PL.zoneAt(W.pos[0], W.pos[1])) { W.pos = PL.pointIn(PL.zone(W.district) ? W.district : (W.zones.find(z => PL.zone(z)) || 'Miraflores')); PL.save(); }
+    const map = PL.map(PL.$('#dmap', view), {center: W.pos, zoom: 14, zones: {highlight: W.zones, mask: true}, label: 'Tu zona'});
+    if (W.active && PL.ll(W.active.pos)) { map.addPin('job', {name: W.active.client, color: '#FFD86B'}, W.active.pos); map.fit(['job'], {pad: [70, 70], max: 16}); }
     if (W.online && !W.active) map.radar(true);
     const toggle = () => { W.online = !W.online; PL.save(); PL.toast(W.online ? 'Estás conectado' : 'Te desconectaste'); PL.render(); };
     drawSide(view); drawActive(view);
@@ -173,26 +175,28 @@
     PL.$('#pw', view).onclick = toggle;
     const reqs = PL.$('#reqs', feed);
     let n = 0;
-    const spawn = () => { if (W.active || reqs.children.length >= 1) return; reqs.appendChild(reqCard(view, ++n)); PL.$('#idle', feed).hidden = true; };
+    const spawn = () => { if (W.active || reqs.children.length >= 1) return; reqs.appendChild(reqCard(view, ++n, map)); PL.$('#idle', feed).hidden = true; };
     PL.later(spawn, 2500);
     PL.every(spawn, 8000);
   }
 
-  function reqCard(view, n){
+  function reqCard(view, n, map){
     const W = PL.S.worker, svc = PL.svc(PL.pick(W.trades)), st = PL.step(svc);
     const kind = !PL.canNow(svc) ? 'prog' : Math.random() < .55 ? 'ya' : 'prog', direct = Math.random() < .22;
     const date = kind === 'prog' ? PL.isoDay(new Date(Date.now() + PL.ri(1, 9) * 864e5)) : '', time = kind === 'prog' ? PL.pick(['08:00', '09:00', '10:00', '14:00', '16:00', '19:00']) : '';
     const repeat = kind === 'prog' && Math.random() < .3 ? PL.pick(['semana', 'quincena']) : 'no';
-    const r = {id: 'r' + n, kind, direct, date, time, repeat, svc: svc.id, tasks: svc.t.length ? [PL.pick(svc.t)] : [], district: PL.pick(W.zones), km: +PL.rnd(.5, 5).toFixed(1), when: kind === 'ya' ? 'Ahora' : PL.whenText({type: 'fecha', date, time}), price: 0, client: PL.pick(PL.DEMO.clients)};
+    const r = {id: 'r' + n, kind, direct, date, time, repeat, svc: svc.id, tasks: svc.t.length ? [PL.pick(svc.t)] : [], district: PL.pick(W.zones.filter(z => PL.zone(z)).length ? W.zones.filter(z => PL.zone(z)) : ['Miraflores']), km: 0, when: kind === 'ya' ? 'Ahora' : PL.whenText({type: 'fecha', date, time}), price: 0, client: PL.pick(PL.DEMO.clients)};
+    r.pos = PL.pointIn(r.district); r.km = +PL.km(W.pos || r.pos, r.pos).toFixed(1);
+    if (map) { map.addPin('r' + n, {name: '', color: kind === 'ya' ? '#FF5A1F' : '#1F8F5F'}, r.pos); map.fit(['r' + n], {pad: [80, 80], max: 15.5}); }
     const el = document.createElement('article');
     el.className = `req rise ${kind}${direct ? ' direct' : ''}`;
     el.innerHTML = `<span class="req-tag ${direct ? 'dir' : kind}">${direct ? PL.ic('heart') + `${PL.esc(r.client)} te eligió otra vez` : kind === 'ya' ? PL.ic('bolt') + 'Inmediato' : PL.ic('cal') + PL.esc(r.when) + (repeat !== 'no' ? ' · ' + PL.REPEAT[repeat].toLowerCase() : '')}</span>
-      <div class="req-h"><span class="svc-ic">${PL.si(svc.i)}</span><div class="req-i"><b>${PL.esc(svc.n)}</b><span>${PL.esc(r.district)} · ${PL.esc(r.when)}</span></div></div>
+      <div class="req-h"><span class="svc-ic">${PL.si(svc.i)}</span><div class="req-i"><b>${PL.esc(svc.n)}</b><span>${PL.esc(r.district)} · a ${String(r.km).replace('.', ',')} km · ${PL.esc(r.when)}</span></div></div>
       <p class="req-note">${PL.esc(r.client)}: “${PL.esc(r.tasks[0] || 'Trabajo general')}”</p>
       <div class="req-acts"><button class="btn btn-g btn-sm" type="button" data-a="pass">Pasar</button><button class="btn btn-v btn-sm" type="button" data-a="ok">Aceptar</button></div>
       <div class="counter" hidden><span style="font-weight:600">S/</span><input class="in" type="number" inputmode="numeric" min="1" placeholder="¿Cuánto cobras?" aria-label="Cuánto cobras" style="flex:1;min-height:42px"><button class="btn btn-v btn-sm" type="button" data-a="send">Confirmar</button></div>
       ${kind === 'ya' ? '<i class="of-bar" aria-hidden="true"><i style="animation-duration:25s"></i></i>' : ''}`;
-    const kill = () => { if (!el.isConnected || el.dataset.hold) return; const p = el.parentNode; el.remove(); if (p && !p.children.length) { const i = PL.$('#idle', view); if (i) i.hidden = false; } };
+    const kill = () => { if (!el.isConnected || el.dataset.hold) return; if (map) map.removePin('r' + n); const p = el.parentNode; el.remove(); if (p && !p.children.length) { const i = PL.$('#idle', view); if (i) i.hidden = false; } };
     PL.later(kill, kind === 'ya' ? 25000 : 60000);
     const take = price => {
       const W2 = PL.S.worker;
@@ -223,7 +227,7 @@
       <div class="job-steps" aria-hidden="true">${STG.map((s, i) => `<i class="${i <= a.stage ? 'on' : ''}"></i>`).join('')}</div>
       ${a.stage === 2 ? `<p style="font-weight:600;text-align:center">Pídele a ${PL.esc(a.client)} su código de inicio</p><div class="pin-in">${[0, 1, 2, 3].map(i => `<input inputmode="numeric" maxlength="1" aria-label="Dígito ${i + 1}" data-i="${i}">`).join('')}</div><p class="muted mono" style="text-align:center;font-size:.74rem">Código del cliente: ${a.pin}</p>` : ''}
       ${a.stage === 4 ? `<p class="req-note">Cobra directo: efectivo, Yape o Plin.</p>` : ''}
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px"><a class="btn btn-l btn-sm" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(a.district + ', Lima')}">${PL.ic('nav')}Cómo llegar</a><button class="btn btn-l btn-sm" type="button" id="jx">No puedo ir</button></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px"><a class="btn btn-l btn-sm" target="_blank" rel="noopener" href="${PL.ll(a.pos) ? `https://www.google.com/maps/dir/?api=1&destination=${a.pos[0]},${a.pos[1]}` : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(a.district + ', Lima')}`}">${PL.ic('nav')}Cómo llegar</a><button class="btn btn-l btn-sm" type="button" id="jx">No puedo ir</button></div>
       <button class="btn btn-t btn-full" type="button" id="jn" style="margin-top:8px">${STG[a.stage][1]}</button></div>`;
     const jn = PL.$('#jn', box);
     const pins = PL.$$('.pin-in input', box);
