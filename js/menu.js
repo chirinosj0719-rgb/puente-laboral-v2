@@ -7,7 +7,7 @@
   /* foto de la cuenta (la de Google) o sus iniciales */
   PL.meAv = (me, cls = '') => me && me.picture ? `<img class="av av-img ${cls}" src="${PL.esc(me.picture)}" alt="" referrerpolicy="no-referrer">` : PL.avatar((me && (me.name || me.phone)) || 'Tú', '#FFE3D4', cls);
   PL.menuGroups = () => [
-    ['Agéndalo', [['home', 'Inicio', 'index.html'], ['search', 'Abrir la app', A('#/')], ['bag', 'Para empresas', 'empresas.html'], ['users', 'Trabajar con Agéndalo', A('#/trabajar')]]],
+    ...(inApp() ? [] : [['Agéndalo', [['home', 'Inicio', 'index.html'], ['search', 'Abrir la app', A('#/')], ['bag', 'Para empresas', 'empresas.html'], ['users', 'Trabajar con Agéndalo', 'index.html#trabajar']]]]),
     ['Tu cuenta', [['user', 'Información personal', A('#/perfil')], ['list', 'Historial de pedidos', A('#/pedidos?t=past')], ['pin', 'Direcciones', A('#/direcciones')], ['heart', 'Favoritos', A('#/equipo')], ['wallet', 'Billetera', A('#/billetera')], ['bell', 'Notificaciones', A('#/notificaciones')], ['gear', 'Ajustes', A('#/ajustes')]]],
     ['Soporte', [['help', 'Ayuda', '#ayuda'], ['id', 'Información legal', A('#/legal')], ['book', 'Libro de Reclamaciones', A('#/reclamaciones')]]]
   ];

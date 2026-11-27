@@ -56,7 +56,7 @@
   PL.svcRow = s => `<button class="svc-row" type="button" data-svc="${s.id}" data-c="${s.c}"><span class="svc-ic">${PL.si(s.i)}</span><span class="sr-t"><b>${PL.esc(s.n)}</b><span>${PL.esc(examples(s))}</span></span>${s.team ? `<span class="sr-team" title="Puedes pedir varias personas">${PL.ic('users')}</span>` : ''}${PL.ic('chev', 'i chev')}</button>`;
   PL.sectCard = c => PL.sectCell(c);
   const locTxt = l => l && l.line ? `${l.line}, ${l.district}` : l && l.district ? l.district : 'Elige dónde necesitas el servicio';
-  const goSvc = e => { const b = e.target.closest('[data-svc]'); if (b) PL.go(`#/pedir/${b.dataset.svc}`); };
+  const goSvc = e => { const b = e.target.closest('[data-svc]'); if (b) PL.go(`#/servicio/${b.dataset.svc}`); };
 
   PL.route('', (view, args, qs) => {
     const S = PL.S;
@@ -156,7 +156,7 @@
       </div></section>
       <div class="wrap">
         <p class="sos">${PL.ic('alert')}<span>Si hay riesgo para la vida, un incendio o un delito, llama primero: <a href="tel:116">Bomberos 116</a> · <a href="tel:106">SAMU 106</a> · <a href="tel:105">Policía 105</a></span></p>
-        <div class="svc-list" id="em">${EMERG.filter(([id]) => PL.svc(id)).map(([id, t, d]) => { const sv = PL.svc(id); return `<a class="svc-row" href="#/pedir/${id}?m=ya&t=${encodeURIComponent(t)}" data-c="${sv.c}"><span class="svc-ic">${PL.si(sv.i)}</span><span class="sr-t"><b>${PL.esc(t)}</b><span>${PL.esc(d)} · ${PL.esc(sv.n)}</span></span>${PL.ic('chev', 'i chev')}</a>`; }).join('')}
+        <div class="svc-list" id="em">${EMERG.filter(([id]) => PL.svc(id)).map(([id, t, d]) => { const sv = PL.svc(id); return `<a class="svc-row" href="#/servicio/${id}?m=ya&t=${encodeURIComponent(t)}" data-c="${sv.c}"><span class="svc-ic">${PL.si(sv.i)}</span><span class="sr-t"><b>${PL.esc(t)}</b><span>${PL.esc(d)} · ${PL.esc(sv.n)}</span></span>${PL.ic('chev', 'i chev')}</a>`; }).join('')}
           <a class="svc-row" href="#/pedir/otro?m=ya" data-c="ayuda"><span class="svc-ic">${PL.si('otr')}</span><span class="sr-t"><b>Otra emergencia</b><span>Cuéntanos qué pasa y te llegan ofertas</span></span>${PL.ic('chev', 'i chev')}</a></div>
       </div>${PL.footer()}`;
   }, {tab: ''});

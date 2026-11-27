@@ -151,7 +151,7 @@
     const ask = () => { if (!ticking) { ticking = true; requestAnimationFrame(paint); } };
     addEventListener('scroll', ask, {passive: true}); addEventListener('resize', ask);
     paint();
-    const open = () => { const s = words[cur]; location.href = `${APP}#/pedir/${s.id}?m=${PL.canNow(s) ? 'ya' : 'prog'}`; };
+    const open = () => { const s = words[cur]; location.href = `${APP}#/servicio/${s.id}`; };
     stage.onclick = open; stage.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } };
   }
   window.addEventListener('DOMContentLoaded', render);

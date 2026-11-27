@@ -85,7 +85,8 @@
     const n = PL.history(f.name).length, nm = f.isBiz ? f.name : PL.short(f.name);
     const {map, fb, ff} = shell(view, o, 'm', `Esperando a <span class="k">${PL.esc(nm)}</span>`);
     map.addPin('w', f);
-    fb.innerHTML = `<div class="direct">${f.isBiz ? PL.bizLogo(f) : PL.avatar(f.name, f.color)}<div><b>${PL.esc(f.name)}</b><span>${f.isBiz ? 'Empresa · asignará a alguien de su equipo' : n ? `Te ayudó ${n} ${n === 1 ? 'vez' : 'veces'}` : 'De confianza'}</span></div><span class="heart" aria-hidden="true">${PL.ic('heart')}</span></div>
+    const pro = !f.isBiz && f.pro && PL.pro ? PL.pro(f.pro) : null, liked = !!PL.fav(f.name);
+    fb.innerHTML = `<div class="direct">${f.isBiz ? PL.bizLogo(f) : PL.avatar(f.name, f.color)}<div><b>${PL.esc(f.name)}</b><span>${f.isBiz ? 'Te envía a alguien de su equipo' : n ? `Te ayudó ${n} ${n === 1 ? 'vez' : 'veces'}` : liked ? 'De confianza' : pro ? PL.esc(pro.title) : 'Verificado'}</span></div><span class="heart" aria-hidden="true">${PL.ic(liked ? 'heart' : 'check')}</span></div>
       <div class="seek" id="dst"><span class="ld" aria-hidden="true"><i></i><i></i><i></i></span><div><b>Le enviamos tu pedido</b><span>${PL.esc(svc.n)} · ${o.mode === 'ya' ? 'inmediato' : PL.esc(PL.whenText(o.when))} · ${PL.money(o.price)}</span></div></div>
       <p class="muted" id="dnote">${o.fallback ? 'Si no puede, te mostramos ofertas de otros trabajadores.' : 'Si no puede, te avisamos para que elijas otra opción.'}</p>`;
     ff.hidden = false;
@@ -93,7 +94,7 @@
     const bind = () => { PL.$('#cx', ff).onclick = () => cancel(o); PL.$('#others', ff).onclick = () => { o.direct = null; set(o, 'buscando'); }; };
     bind();
     PL.later(() => {
-      if (Math.random() < .85) {
+      if (Math.random() < .92) {
         const B = f.isBiz ? PL.biz(f.biz) : null, tm = B ? PL.pick(PL.bizTeam(B)).name : null;
         const w = B ? Object.assign(PL.fakeWorker(), {name: tm}) : Object.assign(PL.fakeWorker(), {name: f.name, color: f.color, rating: f.rating, jobs: f.jobs, phone: f.phone});
         Object.assign(o, {worker: w, pin: String(PL.ri(1000, 9999)), eta: w.eta, chat: [], wpos: null, wasDirect: true, biz: B ? {id: B.id, name: B.n} : null});

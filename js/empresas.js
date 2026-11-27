@@ -3,13 +3,25 @@
 (function(){
   const PL = window.PL;
 
+  const LIMA = ['Miraflores', 'San Isidro', 'Santiago de Surco', 'San Borja', 'Barranco', 'Surquillo', 'Lince', 'Jesús María', 'Magdalena del Mar', 'Pueblo Libre', 'San Miguel', 'La Molina', 'Chorrillos', 'San Luis', 'La Victoria', 'Breña', 'Cercado de Lima'], SUR = ['Punta Hermosa', 'Punta Negra', 'San Bartolo', 'Santa María del Mar'];
   PL.BIZ = [
-    {id: 'ruta-clara', n: 'Ruta Clara', tag: 'Choferes y movilidad', svcs: ['chofer', 'motorizado'], d: ['Miraflores', 'San Isidro', 'Santiago de Surco', 'San Borja'], team: ['Carlos Mendoza', 'Jhon Paredes', 'Edwin Vargas'], c: '#E3EEFC', i: 'cho', about: 'Choferes para empresas, eventos y uso particular, con movilidad propia o con tu auto.'},
-    {id: 'huellitas-al-paso', n: 'Huellitas al Paso', tag: 'Veterinaria a domicilio', svcs: ['veterinaria', 'grooming', 'mascotas', 'paseador'], d: ['Jesús María', 'Lince', 'Pueblo Libre', 'San Miguel', 'Magdalena del Mar'], team: ['Milagros Torres', 'Lucía Chávez', 'Ángel Ramos'], c: '#DCF2E8', i: 'pata', about: 'Atención veterinaria en casa: consultas, vacunas, baño y cuidado de tu mascota.'},
-    {id: 'brillo-hogar', n: 'Brillo Hogar', tag: 'Limpieza de casas y oficinas', svcs: ['limpieza', 'limpiezaof', 'lavado'], d: ['San Borja', 'Surquillo', 'San Luis', 'La Molina'], team: ['Rosa Quispe', 'Yesenia Rojas', 'Sonia Mamani'], c: '#FFF1C9', i: 'limp', about: 'Equipos de limpieza para hogares, oficinas y locales, por día o por turno.'},
-    {id: 'carga-feliz', n: 'Carga Feliz', tag: 'Mudanzas y fletes', svcs: ['mudanza', 'montaje', 'almacen', 'armado'], d: ['La Molina', 'Santiago de Surco', 'Punta Hermosa', 'San Bartolo'], team: ['Wilmer Castillo', 'Raúl Gutiérrez', 'Jorge Ccori'], c: '#FFE3D4', i: 'cmn', about: 'Mudanzas completas, cargadores y armado de muebles, con camión.'},
-    {id: 'guardia-uno', n: 'Guardia Uno', tag: 'Seguridad y vigilancia', svcs: ['seguridad', 'vigilante'], d: ['Cercado de Lima', 'La Victoria', 'Breña', 'Jesús María'], team: ['Luis Huamán', 'Kevin Flores', 'Karina Salazar'], c: '#ECE8FF', i: 'seg', about: 'Personal de seguridad para eventos, edificios y negocios, de día o de noche.'},
-    {id: 'mesa-lista', n: 'Mesa Lista', tag: 'Eventos y catering', svcs: ['mesero', 'barman', 'cocinero', 'anfitriona'], d: ['Miraflores', 'Barranco', 'Chorrillos', 'Santiago de Surco'], team: ['Maribel Apaza', 'Fiorella Díaz', 'Patricia León'], c: '#FFD9C4', i: 'mes', about: 'Meseros, barman y cocina para matrimonios, cumpleaños y eventos de empresa.'}
+    {id: 'brillo-hogar', n: 'Brillo Hogar', tag: 'Limpieza de casas y oficinas', svcs: ['limpieza', 'limpiezaof', 'lavado'], d: ['Miraflores', 'San Isidro', 'Santiago de Surco', 'San Borja', 'Surquillo', 'San Luis', 'La Molina', 'Lince', 'Jesús María'], team: ['Rosa Quispe', 'Yesenia Rojas', 'Sonia Mamani'], c: '#FFF1C9', i: 'limp', art: 'hogar', hours: 'Lunes a sábado, de 7 a. m. a 7 p. m.', about: 'Hacemos limpieza de casas, departamentos y oficinas, por día o por turno. Nos cuentas qué necesitas y te enviamos a alguien de nuestro equipo, con productos y uniforme.'},
+    {id: 'casa-impecable', n: 'Casa Impecable', tag: 'Limpieza profunda y de fin de obra', svcs: ['limpieza', 'lavado', 'deposito', 'desmonte'], d: ['Santiago de Surco', 'Barranco', 'Chorrillos', 'Miraflores', 'San Borja', 'La Molina'].concat(SUR), team: ['Gladys Condori', 'Carmen Rivas', 'Elmer Ticona'], c: '#DDF3EF', i: 'limp', art: 'hogar', hours: 'Todos los días, con cita', about: 'Nos especializamos en limpiezas profundas, de fin de obra y de mudanza. Vamos con equipo, máquinas y productos; tú solo nos dices cuándo.'},
+    {id: 'maestros-en-casa', n: 'Maestros en Casa', tag: 'Reparaciones del hogar', svcs: ['gasfitero', 'electricista', 'carpintero', 'cerrajero', 'pintor', 'albanil', 'armado', 'todero'], d: ['Miraflores', 'San Isidro', 'Lince', 'Jesús María', 'Pueblo Libre', 'Magdalena del Mar', 'San Miguel', 'Surquillo', 'San Borja', 'Barranco', 'Breña', 'Cercado de Lima'], team: ['Carlos Mendoza', 'Luis Huamán', 'Jorge Ccori'], c: '#FFE3D4', i: 'herr', art: 'hogar', hours: 'Lunes a sábado, de 8 a. m. a 8 p. m.', about: 'Gasfitería, electricidad, carpintería y cerrajería en un solo lugar. Revisamos el problema, te damos un presupuesto y enviamos al maestro indicado.'},
+    {id: 'frio-total', n: 'Frío Total', tag: 'Aire acondicionado y refrigeración', svcs: ['aire'], d: LIMA.concat(SUR), team: ['Edwin Vargas', 'Kevin Flores'], c: '#E3EEFC', i: 'aire', art: 'hogar', hours: 'Lunes a sábado, de 8 a. m. a 6 p. m.', about: 'Instalamos y damos mantenimiento a aires acondicionados, refrigeradoras y lavadoras. Te enviamos a un técnico de nuestro equipo con repuestos originales.'},
+    {id: 'ojo-seguro', n: 'Ojo Seguro', tag: 'Cámaras y seguridad electrónica', svcs: ['camaras'], d: LIMA, team: ['Raúl Gutiérrez', 'Ángel Ramos'], c: '#ECE8FF', i: 'cam', art: 'negocio', hours: 'Lunes a sábado, de 9 a. m. a 6 p. m.', about: 'Instalamos cámaras, intercomunicadores y cercos eléctricos en casas, edificios y negocios, y te dejamos todo funcionando en tu celular.'},
+    {id: 'studio-movil', n: 'Studio Móvil', tag: 'Belleza a domicilio', svcs: ['peluqueria', 'manicure', 'maquillaje', 'cejas', 'depilacion', 'barbero'], d: ['Miraflores', 'San Isidro', 'Santiago de Surco', 'Barranco', 'San Borja', 'La Molina', 'Magdalena del Mar', 'Jesús María', 'Lince'], team: ['Fiorella Díaz', 'Patricia León', 'Karina Salazar'], c: '#FFE4EE', i: 'esm', art: 'belleza', hours: 'Martes a domingo, de 8 a. m. a 8 p. m.', about: 'Peluquería, uñas, maquillaje y cejas en tu casa. Eliges el servicio y te enviamos a una profesional de nuestro equipo con todo lo necesario.'},
+    {id: 'relax-en-casa', n: 'Relax en Casa', tag: 'Masajes y faciales', svcs: ['masajes', 'facial'], d: ['Miraflores', 'San Isidro', 'Santiago de Surco', 'Barranco', 'San Borja', 'La Molina', 'Chorrillos'].concat(SUR), team: ['Milagros Torres', 'Lucía Chávez'], c: '#F2ECE3', i: 'masa', art: 'belleza', hours: 'Todos los días, de 9 a. m. a 9 p. m.', about: 'Masajes relajantes, descontracturantes y faciales en tu casa, con camilla y aceites. Te enviamos a un masajista de nuestro equipo.'},
+    {id: 'academia-avanza', n: 'Academia Avanza', tag: 'Profesores de colegio y preuniversitario', svcs: ['profesor', 'matematica', 'fisica', 'literatura', 'preu', 'universidad'], d: LIMA, team: ['Patricia León', 'Jhon Paredes'], c: '#E6ECFF', i: 'lib', art: 'clases', hours: 'Lunes a sábado, de 8 a. m. a 9 p. m.', about: 'Refuerzo escolar, matemática, ciencias y preparación para la universidad. Hacemos una evaluación inicial y asignamos al profesor que mejor encaja con el alumno.'},
+    {id: 'habla-ya', n: 'Habla Ya', tag: 'Clases de idiomas', svcs: ['ingles', 'idiomas'], d: LIMA.concat(SUR), team: ['Maribel Apaza', 'Fiorella Díaz'], c: '#DDF3EF', i: 'lib', art: 'clases', hours: 'Lunes a sábado, de 7 a. m. a 10 p. m.', about: 'Inglés y otros idiomas para niños, jóvenes y adultos, en casa u online. Te asignamos un profesor según tu nivel y lo que necesitas.'},
+    {id: 'cuidar-bien', n: 'Cuidar Bien', tag: 'Adultos mayores y enfermería', svcs: ['adulto', 'enfermeria', 'ninera', 'fisio'], d: LIMA, team: ['Sonia Mamani', 'Milagros Torres', 'Lucía Chávez'], c: '#ECE8FF', i: 'cor', art: 'cuidado', hours: 'Todos los días, las 24 horas', about: 'Cuidadoras y técnicas de enfermería para tu familiar, por horas, por día o de noche. Coordinamos contigo y enviamos a la persona indicada de nuestro equipo.'},
+    {id: 'huellitas-al-paso', n: 'Huellitas al Paso', tag: 'Veterinaria a domicilio', svcs: ['veterinaria', 'grooming', 'mascotas', 'paseador'], d: ['Jesús María', 'Lince', 'Pueblo Libre', 'San Miguel', 'Magdalena del Mar', 'San Isidro', 'Miraflores', 'Surquillo', 'San Borja'], team: ['Milagros Torres', 'Lucía Chávez', 'Ángel Ramos'], c: '#DCF2E8', i: 'pata', art: 'mascotas', hours: 'Todos los días, de 8 a. m. a 8 p. m.', about: 'Veterinaria a domicilio: consultas, vacunas, baño y corte. Te enviamos a un médico veterinario o a un groomer de nuestro equipo.'},
+    {id: 'carga-feliz', n: 'Carga Feliz', tag: 'Mudanzas y fletes', svcs: ['mudanza', 'montaje', 'almacen', 'armado', 'cargador', 'desmonte'], d: LIMA.concat(SUR), team: ['Wilmer Castillo', 'Raúl Gutiérrez', 'Jorge Ccori'], c: '#FFF1CF', i: 'cmn', art: 'mudanza', hours: 'Lunes a sábado, de 7 a. m. a 6 p. m.', about: 'Mudanzas completas, fletes y cargadores, con camión propio. Nos dices qué hay que llevar y enviamos al equipo que hace falta.'},
+    {id: 'ruta-clara', n: 'Ruta Clara', tag: 'Choferes y movilidad', svcs: ['chofer', 'motorizado'], d: LIMA.concat(SUR), team: ['Carlos Mendoza', 'Jhon Paredes', 'Edwin Vargas'], c: '#E3EEFC', i: 'cho', art: 'mudanza', hours: 'Todos los días, con reserva', about: 'Choferes para el día a día, eventos y empresas, con tu auto o con movilidad propia.'},
+    {id: 'mesa-lista', n: 'Mesa Lista', tag: 'Eventos y catering', svcs: ['mesero', 'barman', 'anfitriona', 'cocinero'], d: LIMA.concat(SUR), team: ['Maribel Apaza', 'Fiorella Díaz', 'Patricia León'], c: '#FFD9C4', i: 'mes', art: 'eventos', hours: 'Todos los días, con reserva', about: 'Meseros, barman, anfitrionas y cocina para matrimonios, cumpleaños y eventos de empresa. Nos cuentas cómo es tu evento y armamos el equipo.'},
+    {id: 'fiesta-total', n: 'Fiesta Total', tag: 'Animación, música y fotografía', svcs: ['dj', 'animador', 'mago', 'musicos', 'fotografo', 'montaje'], d: LIMA.concat(SUR), team: ['Kevin Flores', 'Karina Salazar'], c: '#FFEAD6', i: 'dj', art: 'eventos', hours: 'Fines de semana y feriados, con reserva', about: 'DJ, animadores, magos, músicos y fotógrafos para tu fiesta. Te ayudamos a elegir y enviamos a nuestro equipo.'},
+    {id: 'guardia-uno', n: 'Guardia Uno', tag: 'Seguridad y vigilancia', svcs: ['seguridad', 'vigilante'], d: LIMA, team: ['Luis Huamán', 'Kevin Flores', 'Karina Salazar'], c: '#ECE8FF', i: 'seg', art: 'negocio', hours: 'Todos los días, las 24 horas', about: 'Agentes de seguridad para eventos, edificios y negocios, de día o de noche.'},
+    {id: 'impulsa', n: 'Impulsa', tag: 'Personal para tu negocio', svcs: ['impulsadora', 'cajero', 'almacen', 'limpiezaof'], d: LIMA, team: ['Yesenia Rojas', 'Raúl Gutiérrez'], c: '#EEF0E4', i: 'anf', art: 'negocio', hours: 'Lunes a sábado, de 8 a. m. a 6 p. m.', about: 'Impulsadoras, cajeros y personal de almacén para campañas y temporadas. Nos dices cuántas personas y por cuánto tiempo.'}
   ];
 
   /* la empresa del usuario (si la registró) va primero */
@@ -49,27 +61,31 @@
     draw();
   }, {tab: ''});
 
-  /* ——— página de una empresa ——— */
-  PL.route('empresa', (view, args) => {
+  /* ——— página de una empresa: a qué se dedica, qué ofrece y dónde atiende. No se elige a la persona: la empresa envía a alguien de su equipo ——— */
+  PL.route('empresa', (view, args, qs) => {
     const b = PL.biz(args[0]);
-    if (!b) { PL.go('#/empresas'); return; }
-    const team = PL.bizTeam(b), main = PL.svc(b.svcs[0]);
-    const reqUrl = id => `#/pedir/${id}?b=${b.id}&m=${PL.canNow(PL.svc(id)) ? 'ya' : 'prog'}`;
-    view.innerHTML = `<div class="wrap">
-      <section class="bz-hero">${PL.bizLogo(b, 'l')}
-        <div><span class="eti">${PL.ic('bag')}${PL.esc(b.tag)}</span><h1>${PL.esc(b.n)}</h1><p class="muted" style="max-width:52ch;margin-top:10px">${PL.esc(b.about)}</p>
-          <div class="chips" style="margin-top:14px">${tagPill(b)}<span class="pill v">${PL.ic('check')}RUC verificado</span></div></div>
-        <div class="bz-acts"><button class="btn btn-l" type="button" id="bzChat">${PL.ic('chat')}Escribir a la empresa</button><a class="btn btn-a" href="${reqUrl(main.id)}">Pedir un servicio<span class="arr">${PL.ic('arrow')}</span></a></div>
-      </section>
-      <section class="sec" style="padding-top:44px"><div class="sec-h"><span class="eti">${PL.ic('list')}Servicios</span><h2>Lo que <span class="k">ofrecen</span></h2></div>
-        <div class="ords">${b.svcs.map(id => { const s = PL.svc(id); return `<a class="ord" href="${reqUrl(id)}"><span class="svc-ic">${PL.si(s.i)}</span><div class="ord-i"><b>${PL.esc(s.n)}</b><span>${PL.esc(s.t.slice(0, 3).join(' · '))}</span></div>${PL.ic('chev', 'i chev')}</a>`; }).join('')}</div></section>
-      <section class="sec"><div class="sec-h"><span class="eti">${PL.ic('users')}Equipo</span><h2>Quiénes <span class="k">van</span></h2></div>
-        <div class="ords">${team.map(m => `<div class="ord">${PL.avatar(m.name, '#FFE3D4')}<div class="ord-i"><b>${PL.esc(m.name)}</b><span>${PL.esc(m.role)}</span></div><span class="pill v">${PL.ic('check')}Verificado</span></div>`).join('')}</div></section>
-      <section class="sec"><div class="sec-h"><span class="eti">${PL.ic('pin')}Zonas</span><h2>Dónde <span class="k">atienden</span></h2></div><div class="chips">${b.d.map(d => `<span class="chip" style="cursor:default">${PL.esc(d)}</span>`).join('')}</div></section>
-    </div>${PL.footer()}`;
+    if (!b) { PL.go('#/'); return; }
+    const sq = qs.get('s') && b.svcs.includes(qs.get('s')) ? qs.get('s') : '', main = PL.svc(sq || b.svcs[0]);
+    const ya = qs.get('m') === 'ya', t = qs.get('t') || '';
+    const reqUrl = id => `#/pedir/${id}?b=${b.id}&m=${ya && PL.canNow(PL.svc(id)) ? 'ya' : 'prog'}${t && id === sq ? '&t=' + encodeURIComponent(t) : ''}`;
+    const art = b.art || main.c;
+    view.innerHTML = `<section class="st-h" style="--t:${b.c}"><div class="st-h-in">
+        <a class="sector-back" href="${sq ? `#/servicio/${sq}${ya ? '?m=ya' : ''}` : '#/'}">${PL.ic('back')}${sq ? PL.esc(main.n) : 'Inicio'}</a>
+        <div class="pf-top">${PL.bizLogo(b, 'xl')}
+          <div class="pf-id"><h1>${PL.esc(b.n)}</h1><p class="pf-tt">${PL.esc(b.tag)}</p>
+            <div class="pf-badges">${tagPill(b)}<span class="pill v">${PL.ic('check')}RUC verificado</span></div></div>
+          <div class="pf-cta"><a class="btn btn-a" href="${reqUrl(main.id)}">Pedir a ${PL.esc(b.n)}<span class="arr">${PL.ic('arrow')}</span></a><button class="btn btn-l" type="button" id="bzChat">${PL.ic('chat')}Escribir a la empresa</button></div>
+        </div></div></section>
+      <div class="pf-body">
+        <section class="pf-sec pf-about"><h2>Sobre la empresa</h2><p>${PL.esc(b.about)}</p></section>
+        <section class="pf-sec"><h2>Servicios</h2><div class="svc-list pf-svcs">${b.svcs.map(id => { const s = PL.svc(id); return `<a class="svc-row" href="${reqUrl(id)}" data-c="${s.c}"><span class="svc-ic">${PL.si(s.i)}</span><span class="sr-t"><b>${PL.esc(s.n)}</b><span>${PL.esc(s.t.slice(0, 3).join(' · '))}</span></span>${PL.ic('chev', 'i chev')}</a>`; }).join('')}</div></section>
+        <section class="pf-sec"><h2>Dónde y cuándo</h2><dl class="pf-dl"><dt>Atiende en</dt><dd>${PL.esc(b.d.join(', '))}</dd>${b.hours ? `<dt>Horario</dt><dd>${PL.esc(b.hours)}</dd>` : ''}</dl></section>
+      </div>
+      <div class="pf-sticky"><a class="btn btn-a btn-full" href="${reqUrl(main.id)}">Pedir a ${PL.esc(b.n)}<span class="arr">${PL.ic('arrow')}</span></a></div>
+      ${PL.footer()}`;
     PL.$('#bzChat', view).onclick = () => {
       PL.S.bizChats = PL.S.bizChats || {}; const q = PL.S.bizChats[b.id] = PL.S.bizChats[b.id] || {msgs: [], stage: 0};
-      PL.quoteChat({w: PL.bizW(b), svc: main, whenTxt: 'Cuando lo acuerden', tasks: [], price: 0, msgs: q.msgs, state: q, save: PL.save,
+      PL.quoteChat({w: PL.bizW(b), svc: main, whenTxt: 'Cuando lo acuerden', tasks: t ? [t] : [], price: 0, msgs: q.msgs, state: q, save: PL.save,
         onAccept: (amt, sum) => PL.go(`${reqUrl(main.id)}&p=${amt}&d=${encodeURIComponent(sum || '')}`)});
     };
   }, {tab: ''});

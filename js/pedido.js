@@ -1,8 +1,8 @@
-/* Agéndalo · pedir un servicio, paso a paso: servicio → para cuándo → dirección → confirmar.
-   Lo principal es agendar (día y hora, una vez o repetido). Si es urgente, en "para cuándo" se elige
-   "Lo antes posible" (mode 'ya'); y si solo necesitas contratar a alguien, "Sin fecha fija".
-   La dirección se elige en el mapa real (pin fijo, búsqueda o tu ubicación) y tiene que caer dentro de la zona de servicio.
-   Con ?w=Nombre el pedido va directo a un trabajador de confianza; con ?b=id, a una empresa. */
+/* Agéndalo · pedir un servicio, paso a paso: qué → para cuándo → dirección → confirmar.
+   Antes se elige a quién en la vitrina del servicio (#/servicio): una empresa (te envía a alguien de su equipo)
+   o una persona (?w=Nombre&pro=id). Con ?b=id va a una empresa; con ?pub=1 se publica para recibir ofertas.
+   Lo principal es agendar (día y hora, una vez o repetido); si es urgente, "Lo antes posible" (mode 'ya');
+   y si solo necesitas contratar a alguien, "Sin fecha fija". El mapa aparece recién en la dirección. */
 (function(){
   const PL = window.PL;
   const SLOTS = [['Mañana', ['07:00', '08:00', '09:00', '10:00', '11:00']], ['Tarde', ['12:00', '13:00', '14:00', '15:00', '16:00', '17:00']], ['Noche', ['18:00', '19:00', '20:00', '21:00']]];
@@ -128,10 +128,15 @@
 
   PL.route('pedir', (view, args, qs) => {
     const svc = PL.svc(args[0]) || PL.svc('otro');
+    /* sin elegir a quién: primero la vitrina del servicio */
+    if (!svc.other && !qs.get('w') && !qs.get('b') && !qs.get('re') && qs.get('pub') !== '1') {
+      const keep = ['m', 't'].filter(k => qs.get(k)).map(k => `${k}=${encodeURIComponent(qs.get(k))}`).join('&');
+      history.replaceState(null, '', `#/servicio/${svc.id}${keep ? '?' + keep : ''}`); PL.render(); return;
+    }
     const S = PL.S, re = qs.get('re') ? PL.order(qs.get('re')) : null;
     let fav = qs.get('w') ? PL.fav(qs.get('w')) : null;
-    const pros = PL.svcWorkers(svc.id), bizHere = PL.bizFor(svc.id);
     const bizQ = qs.get('b') ? PL.biz(qs.get('b')) : null;
+    const proQ = qs.get('pro') ? PL.pro(qs.get('pro')) : null;
     /* un solo camino: el modo sale de lo que se elija en "para cuándo" */
     let mode = qs.get('m') === 'ya' && PL.canNow(svc) ? 'ya' : 'prog';
     const favsHere = S.favs.filter(f => PL.history(f.name).some(o => o.svc === svc.id));
@@ -146,59 +151,55 @@
       when: mode === 'ya' ? {type: 'ahora'} : re && re.when && re.when.type === 'flex' ? {type: 'flex'} : {type: 'fecha', date: '', time: ''},
       repeat: re && re.repeat ? re.repeat : 'no',
       price: Number(qs.get('p')) || (fav && lastPrice(fav.name)) || (re ? re.price : ''), pay: (re ? re.pay : S.client.pay) === 'efectivo' || !(re ? re.pay : S.client.pay) ? 'efectivo' : 'chat',
-      direct: fav ? fav.name : bizQ ? bizQ.n : null, directW: bizQ ? PL.bizW(bizQ) : null, fallback: true, chats: {}, cst: {}, ppos: {}
+      direct: bizQ ? bizQ.n : qs.get('w') || null, directW: bizQ ? PL.bizW(bizQ) : proQ && proQ.name === qs.get('w') ? PL.proW(proQ) : null, fallback: true, chats: {}, cst: {}
     };
     const dn = () => D.directW && D.directW.isBiz ? D.direct : PL.short(D.direct);
     const STEPS = [que, cuando, donde, confirmar];
     const NAMES = ['Servicio', 'Cuándo', 'Dirección', 'Confirmar'];
     const TITLES = ['¿Qué <span class="k">necesitas?</span>', '¿Para <span class="k">cuándo?</span>', '¿Dónde <span class="k">es?</span>', 'Revisa y <span class="k">confirma</span>'];
-    const SIZE = {que: 'm', cuando: 's', donde: 'l', confirmar: 'm'};
+    const SIZE = {que: 'none', cuando: 'none', donde: 'l', confirmar: 'm'};
     let step = 0;
 
-    view.innerHTML = `<div class="flow" id="flow"><div class="flow-map" id="fmap"><span class="map-chip" id="mchip">${PL.ic('pin')}<span></span></span></div>
+    view.innerHTML = `<div class="flow" id="flow"><div class="flow-map" id="fmap"><span class="map-chip" id="mchip">${PL.ic('pin')}<span></span></span></div><aside class="flow-side" id="fside" data-c="${svc.c}"></aside>
       <section class="flow-panel"><div class="fp-h"><button class="ibtn" id="back" type="button" aria-label="Atrás">${PL.ic('back')}</button><h1 id="fh"></h1></div>
       <ol class="fp-steps" id="fsteps" aria-label="Pasos">${NAMES.map(n => `<li>${n}</li>`).join('')}</ol>
       <div class="fp-b" id="fb"></div><div class="fp-f" id="ff"></div></section></div>`;
     const flow = PL.$('#flow', view), fb = PL.$('#fb', view), ff = PL.$('#ff', view);
-    const fm = PL.map(PL.$('#fmap', view), {center: [D.loc.lat, D.loc.lng], zoom: 15, label: 'Mapa de tu pedido', onPin: id => { const w = pros[Number(id.slice(1))]; if (w) openPro(w); }});
+    /* el mapa se crea recién en la dirección (antes no se muestra) */
+    let fm = null;
+    const map = () => fm || (fm = PL.map(PL.$('#fmap', view), {center: [D.loc.lat, D.loc.lng], zoom: 15, label: 'Mapa de tu pedido'}));
     const chip = t => { PL.$('#mchip span', view).textContent = t; };
 
     const tot = () => D.price * D.people * (svc.u === 'hora' ? D.hours : 1);
     const nextBtn = (t = 'Continuar') => `<button class="btn btn-t" id="next" type="button">${t}<span class="arr">${PL.ic('arrow')}</span></button>`;
-    const head = () => `<div class="svc-head"><span class="svc-ic">${PL.si(svc.i)}</span><div><b>${PL.esc(svc.n)}</b><span>${svc.other ? 'Cuéntanos qué necesitas' : PL.esc(PL.cat(svc.c).name)}</span></div><a class="btn btn-l btn-xs" href="${svc.other ? '#/servicios' : '#/sector/' + svc.c}">Cambiar</a></div>`;
-    const directBox = () => {
+    const back = () => `#/servicio/${svc.id}${mode === 'ya' ? '?m=ya' : ''}`;
+    const head = () => `<div class="svc-head"><span class="svc-ic">${PL.si(svc.i)}</span><div><b>${PL.esc(svc.n)}</b><span>${svc.other ? 'Cuéntanos qué necesitas' : PL.esc(PL.cat(svc.c).name)}</span></div>${D.direct ? '' : `<a class="btn btn-l btn-xs" href="${svc.other ? '#/servicios' : back()}">Cambiar</a>`}</div>`;
+    const bizOf = () => D.directW && D.directW.isBiz ? PL.biz(D.directW.biz) : null;
+    const proOf = () => proQ && D.direct === proQ.name ? proQ : null;
+    /* a quién se lo pides: la persona o la empresa que elegiste */
+    const whoLine = () => {
       if (!D.direct) return '';
-      const f = PL.fav(D.direct) || D.directW; if (!f) return '';
-      const n = PL.history(f.name).length;
-      return `<div class="direct">${f.isBiz ? PL.bizLogo(f) : PL.avatar(f.name, f.color)}<div><b>Pedido directo a ${PL.esc(f.isBiz ? f.name : PL.short(f.name))}</b><span>${n ? `Te ayudó ${n} ${n === 1 ? 'vez' : 'veces'}` : f.isBiz ? 'Empresa · asigna a alguien de su equipo' : PL.fav(f.name) ? 'De confianza' : 'Verificado'} · <button class="prof-link" type="button" data-undirect>Pedir a cualquiera</button></span></div><span class="heart" aria-hidden="true">${PL.ic(PL.fav(f.name) ? 'heart' : 'check')}</span></div>`;
+      const b = bizOf(), p = proOf(), n = PL.history(D.direct).length;
+      return `<div class="who-box">${b ? PL.bizLogo(b) : `<span class="wb-ph">${PL.face(D.direct)}</span>`}<div><b>${PL.esc(b ? b.n : D.direct)}</b><span>${PL.esc(b ? 'Te envía a alguien de su equipo' : p ? p.title : n ? `Te ayudó ${n} ${n === 1 ? 'vez' : 'veces'}` : svc.n)}</span></div>${svc.other ? '' : `<a class="btn btn-l btn-xs" href="${back()}">Cambiar</a>`}</div>`;
     };
+    /* en escritorio, mientras llenas qué y cuándo, a la izquierda se ve a quién se lo pides */
+    function side(){
+      const el = PL.$('#fside', view), b = bizOf(), p = proOf();
+      el.style.cssText = b ? `--t:${b.c}` : '';
+      const chg = svc.other ? '' : `<a class="btn btn-l btn-sm fs-chg" href="${back()}">Cambiar</a>`;
+      el.innerHTML = b ? `${PL.art(b.art || svc.c, 'fs-art', true)}${PL.bizLogo(b, 'xl')}<div><span class="fs-t">${PL.esc(b.tag)}</span><h2>${PL.esc(b.n)}</h2></div><p>${PL.esc(b.about)}</p>${chg}`
+        : D.direct ? `<span class="fs-ph">${PL.face(D.direct)}</span><div><span class="fs-t">${PL.esc(p ? p.title : svc.n)}</span><h2>${PL.esc(D.direct)}</h2></div>${p ? `<p>${PL.esc(p.bio)}</p>` : ''}${chg}`
+        : `${PL.art(svc.c, 'fs-art', true)}<div><span class="fs-t">${svc.other ? 'A medida' : PL.esc(PL.cat(svc.c).name)}</span><h2>${PL.esc(svc.n)}</h2></div><p>${svc.other ? 'Lo describes y te llegan ofertas de quienes pueden hacerlo.' : 'Publicas tu pedido y te llegan ofertas de quienes pueden ir.'}</p>`;
+    }
     const qty = (key, label, sub) => `<div class="qty"><div><b>${label}</b><span>${sub}</span></div><div class="stepper"><button type="button" data-q="${key}" data-d="-1" aria-label="Menos">${PL.ic('minus')}</button><output id="q-${key}">${D[key]}</output><button type="button" data-q="${key}" data-d="1" aria-label="Más">${PL.ic('plus')}</button></div></div>`;
-    const kmTxt = km => km < 1 ? `${Math.round(km * 1000 / 50) * 50} m` : `${km.toFixed(1).replace('.', ',')} km`;
     const weekday = iso => new Date(iso + 'T12:00').toLocaleDateString('es-PE', {weekday: 'long'}).replace(/o$/, 'os');
     const repTxt = () => D.repeat === 'no' ? '' : D.repeat === 'semana' && D.when.date ? `Todos los ${weekday(D.when.date)}` : PL.REPEAT[D.repeat];
 
     const whenTxt = () => D.when.type === 'ahora' ? 'Lo antes posible' : D.when.type === 'fecha' && D.when.date && D.when.time ? PL.whenText(D.when) : 'El día que elijas';
 
-    /* perfiles y chat de presupuesto (desde la lista o desde el pin del mapa) */
-    function openPro(w){
-      PL.profile(w, {svc, district: D.loc.district || '', when: mode === 'ya' ? 'Puede ir hoy' : 'Disponible para agendar', acceptLabel: `Pedirle a ${w.name.split(' ')[0]}`, onAccept: () => { D.direct = w.name; D.directW = w; que(); PL.toast(`Tu pedido le llegará primero a ${PL.short(w.name)}`); },
-        onChat: () => PL.quoteChat({w, svc, whenTxt: whenTxt(), tasks: D.tasks, price: D.price || 0, msgs: (D.chats[w.name] = D.chats[w.name] || []), state: (D.cst[w.name] = D.cst[w.name] || {stage: 0}),
-          onAccept: (amt, sum) => { D.direct = w.name; D.directW = w; D.price = amt; if (sum && !D.note.includes(sum)) D.note = (D.note ? D.note + '\n' : '') + sum; go(step + 1); PL.toast(`Presupuesto aceptado. Completa los datos para enviárselo a ${PL.short(w.name)}`, 3600); }})});
-    }
-    function prosOnMap(){
-      fm.clear(); fm.setMe([D.loc.lat, D.loc.lng], {zoom: 15});
-      if (D.direct) return;
-      pros.forEach((w, i) => { const p = fm.addPin('p' + i, w, D.ppos[w.name]); D.ppos[w.name] = [p.lat, p.lng]; });
-      fm.fit(null, {max: 15.5});
-    }
-
     /* ——— paso: qué ——— */
     function que(){
-      prosOnMap();
-      const near = pros.map(w => ({w, km: PL.km([D.loc.lat, D.loc.lng], D.ppos[w.name] || [D.loc.lat, D.loc.lng])})).sort((a, b) => a.km - b.km);
-      fb.innerHTML = `${directBox()}${head()}
-        ${!D.direct && bizHere.length ? `<p class="blk-t">Empresas <small>Con su propio equipo</small></p><div class="bizs" id="bizs">${bizHere.map(b => `<button class="biz" type="button" data-biz="${b.id}">${PL.bizLogo(b)}<span><b>${PL.esc(b.n)}</b><span class="t">${PL.esc(b.tag)}</span></span>${b.mine ? '<span class="pill a">Tu empresa</span>' : ''}</button>`).join('')}</div>` : ''}
-        ${!D.direct ? `<p class="blk-t">Personas cerca de ti <small>${PL.esc(D.loc.district || '')}</small></p><div class="pros" id="pros">${near.map(({w, km}) => `<button class="pro" type="button" data-pro="${PL.esc(w.name)}">${PL.avatar(w.name, w.color)}<b>${PL.esc(PL.short(w.name))}</b><span>${PL.ic('check')}Verificado</span><em>a ${kmTxt(km)}</em></button>`).join('')}</div>` : ''}
+      fb.innerHTML = `${whoLine()}${head()}
         ${svc.t.length ? `<p class="blk-t">¿Qué hay que hacer? <small>Elige una o más</small></p><div class="chips tasks" id="tasks">${svc.t.map(t => `<button class="chip" type="button" aria-pressed="${D.tasks.includes(t)}">${PL.ic('check', 'i ck')}${PL.esc(t)}</button>`).join('')}</div>` : ''}
         <label class="field" style="margin-top:18px"><span>${svc.other ? 'Describe el trabajo' : 'Detalles para cotizar'} <em>${svc.other ? '' : '(opcional)'}</em></span><textarea class="in" id="note" maxlength="400" placeholder="${svc.other ? 'Ej.: necesito alguien que arregle mi bicicleta' : 'Medidas, marca, piso, si hay que llevar materiales…'}">${PL.esc(D.note)}</textarea></label>
         <div class="photos" id="photos"><p class="blk-t" style="margin:0 0 8px">Fotos <small>Ayudan a cotizar mejor · hasta ${MAXPH}</small></p><div class="ph-row">${D.photos.map((p, k) => `<span class="ph-th"><img src="${p}" alt="Foto ${k + 1}"><button type="button" data-rmph="${k}" aria-label="Quitar foto ${k + 1}">${PL.ic('x')}</button></span>`).join('')}${D.photos.length < MAXPH ? `<label class="ph-add"><input type="file" accept="image/*" id="photo" multiple>${PL.ic('cam')}<span>Agregar</span></label>` : ''}</div></div>
@@ -218,23 +219,12 @@
       const md = PL.$('#modo', fb); if (md) md.onclick = e => { const b = e.target.closest('[data-on]'); if (!b) return; D.online = b.dataset.on === '1'; PL.$$('[data-on]', fb).forEach(x => x.setAttribute('aria-pressed', x === b)); };
       const lv = PL.$('#nivel', fb); if (lv) lv.onclick = e => { const b = e.target.closest('[data-lv]'); if (!b) return; D.level = D.level === b.dataset.lv ? '' : b.dataset.lv; PL.$$('[data-lv]', fb).forEach(x => x.setAttribute('aria-pressed', x.dataset.lv === D.level)); };
       fb.querySelectorAll('[data-q]').forEach(b => b.onclick = () => { const k = b.dataset.q; D[k] = Math.max(1, Math.min(k === 'people' ? 30 : 12, D[k] + Number(b.dataset.d))); PL.$('#q-' + k, fb).textContent = D[k]; });
-      const bz = PL.$('#bizs', fb);
-      if (bz) bz.onclick = e => {
-        const x = e.target.closest('[data-biz]'); if (!x) return;
-        const b = PL.biz(x.dataset.biz), bw = PL.bizW(b);
-        const pick = () => { D.direct = b.n; D.directW = bw; que(); PL.toast(`Tu pedido le llegará a ${b.n}`); };
-        PL.bizSheet(b, {onAccept: pick, onChat: () => PL.quoteChat({w: bw, svc, whenTxt: whenTxt(), tasks: D.tasks, price: D.price || 0, msgs: (D.chats[b.id] = D.chats[b.id] || []), state: (D.cst[b.id] = D.cst[b.id] || {stage: 0}),
-          onAccept: (amt, sum) => { D.direct = b.n; D.directW = bw; D.price = amt; if (sum && !D.note.includes(sum)) D.note = (D.note ? D.note + '\n' : '') + sum; go(step + 1); PL.toast(`Presupuesto aceptado. Completa los datos para enviárselo a ${b.n}`, 3600); }})});
-      };
-      const pl = PL.$('#pros', fb);
-      if (pl) pl.onclick = e => { const b = e.target.closest('[data-pro]'); if (b) openPro(pros.find(x => x.name === b.dataset.pro)); };
       next.onclick = () => go(step + 1);
       sync();
     }
 
     /* ——— paso: para cuándo. Lo principal es agendar; si es urgente, lo antes posible; o sin fecha fija ——— */
     function cuando(){
-      fm.clear(); fm.setMe([D.loc.lat, D.loc.lng], {zoom: 15});
       const days = [];
       for (let i = 0; i < 21; i++) days.push(PL.isoDay(new Date(Date.now() + i * 864e5)));
       const canRep = !svc.other && !NOREP.includes(svc.c), now = PL.canNow(svc), W = D.when.type;
@@ -287,9 +277,7 @@
 
     /* ——— paso: dónde (mapa real con pin fijo) ——— */
     function donde(){
-      fm.clear();
       if (D.online) {
-        fm.setMe([D.loc.lat, D.loc.lng], {zoom: 13});
         fb.innerHTML = `<div class="when-sum">${PL.ic('chat')}<span><b>Clase online</b><br><span class="muted">No hace falta dirección. Cuando confirmes, quien acepte te envía el enlace de la videollamada por el chat.</span></span></div>
           <button class="row-btn" type="button" id="toHome">${PL.ic('home')}<span><b>Prefiero que sea en mi casa</b><span>Cambiar a clase presencial</span></span>${PL.ic('chev', 'i chev')}</button>`;
         ff.innerHTML = nextBtn();
@@ -299,14 +287,15 @@
       }
       ff.innerHTML = nextBtn('Confirmar dirección');
       const next = PL.$('#next', ff);
-      const pp = PL.placePanel({fm, host: fb, loc: D.loc, tip: mode === 'ya' ? 'El servicio llega aquí' : 'Aquí es el servicio', save: !!PL.me(), saveAs: D.saveAs,
+      const m = map(); m.clear();
+      const pp = PL.placePanel({fm: m, host: fb, loc: D.loc, tip: mode === 'ya' ? 'El servicio llega aquí' : 'Aquí es el servicio', save: !!PL.me(), saveAs: D.saveAs,
         onValid: ok => { next.disabled = !ok; }, onZone: z => chip(z ? z.n : 'Fuera de la zona')});
       next.onclick = () => { D.loc = pp.read(); D.saveAs = pp.saveAs(); pp.stop(); go(step + 1); };
     }
 
     /* ——— paso: confirmar (como el checkout de una app de reparto) ——— */
     function confirmar(){
-      fm.clear(); fm.setMe([D.loc.lat, D.loc.lng], {zoom: 16.5}); chip(D.loc.district);
+      const m = map(); m.clear(); m.setMe([D.loc.lat, D.loc.lng], {zoom: 16.5}); chip(D.loc.district);
       const me = PL.me(), wt = D.when.type;
       const iWhen = STEPS.indexOf(cuando), iWhere = STEPS.indexOf(donde);
       const svcSub = [D.tasks.join(', '), D.level, !D.tasks.length && D.note ? D.note.slice(0, 60) : '', D.photos.length ? `${D.photos.length} ${D.photos.length === 1 ? 'foto' : 'fotos'}` : '', D.people > 1 ? `${D.people} personas` : '', svc.u === 'hora' ? `${D.hours} h` : ''].filter(Boolean).join(' · ');
@@ -315,7 +304,7 @@
           <button class="ck-row" type="button" data-to="${iWhen}">${PL.ic(wt === 'ahora' ? 'bolt' : wt === 'flex' ? 'chat' : 'cal')}<span><small>Cuándo</small><b>${wt === 'ahora' ? 'Lo antes posible' : wt === 'flex' ? 'Fecha a coordinar' : PL.esc(PL.whenText(D.when))}</b><span>${wt === 'ahora' ? 'Hoy: quien acepte sale hacia tu dirección' : wt === 'flex' ? 'Acuerdan el día por chat' : PL.esc(repTxt() || 'Solo una vez')}</span></span>${PL.ic('chev', 'i chev')}</button>
           <button class="ck-row" type="button" data-to="0"><span class="ck-svc">${PL.si(svc.i)}</span><span><small>Servicio</small><b>${PL.esc(svc.n)}</b><span>${PL.esc(svcSub || 'Sin detalles')}</span></span>${PL.ic('chev', 'i chev')}</button>
         </div>
-        ${favsHere.length && !fav && !D.directW ? `<p class="blk-t">¿A quién se lo pides?</p><div class="chips" id="who"><button class="chip" type="button" data-who="" aria-pressed="${!D.direct}">${PL.ic('users')}Recibir ofertas</button>${favsHere.map(f => `<button class="chip who" type="button" data-who="${PL.esc(f.name)}" aria-pressed="${D.direct === f.name}">${PL.avatar(f.name, f.color, 'xs')}${PL.esc(PL.short(f.name))}</button>`).join('')}</div>` : directBox()}
+        ${favsHere.length && !D.direct ? `<p class="blk-t">¿A quién se lo pides?</p><div class="chips" id="who"><button class="chip" type="button" data-who="" aria-pressed="${!D.direct}">${PL.ic('users')}Recibir ofertas</button>${favsHere.map(f => `<button class="chip who" type="button" data-who="${PL.esc(f.name)}" aria-pressed="${D.direct === f.name}">${PL.avatar(f.name, f.color, 'xs')}${PL.esc(PL.short(f.name))}</button>`).join('')}</div>` : whoLine()}
         <label class="check" id="fbk"${D.direct ? '' : ' hidden'}><input type="checkbox" id="fallback"${D.fallback ? ' checked' : ''}><span>Si no puede, que me lleguen ofertas de otros trabajadores.</span></label>
         <p class="blk-t">¿Cuánto ofreces? <small>Tú pones el precio${svc.other ? '' : ' ' + PL.unitText(svc.u)}${D.people > 1 ? ', por persona' : ''}</small></p>
         <label class="offer-in"><span>S/</span><input id="pv" type="number" inputmode="numeric" min="1" step="1" placeholder="0" aria-label="Tu oferta en soles" value="${D.price || ''}"></label>
@@ -325,12 +314,12 @@
         <p class="blk-t">Contacto</p>
         ${me ? `<div class="ck-me">${PL.avatar(me.name || 'Tú', '#FFE3D4')}<span><b>${PL.esc(me.name || 'Tu cuenta')}</b><span>${me.phone ? '+51 ' + PL.esc(PL.fmtPhone(me.phone)) : 'Agrega un celular para que te avisen al llegar'}</span></span><a class="btn btn-l btn-xs" href="#/perfil">Editar</a></div>
           ${me.phone ? '' : `<label class="field" style="margin-top:10px"><span>Celular</span><span class="tel"><span class="cc">+51</span><input class="in" id="cp" type="tel" inputmode="numeric" autocomplete="tel-national" maxlength="9" placeholder="9XXXXXXXX"></span></label>`}`
-          : `<div class="ck-me guest">${PL.ic('user')}<span><b>Ingresa para enviar tu pedido</b><span>Con tu celular o tu correo. Tu pedido no se pierde.</span></span><button class="btn btn-t btn-xs" type="button" id="login">Ingresar</button></div>`}
+          : `<div class="ck-me guest">${PL.ic('user')}<span><b>Ingresa para enviar tu pedido</b><span>Con tu cuenta de Google. Lo que llenaste se mantiene.</span></span><button class="btn btn-t btn-xs" type="button" id="login">Ingresar</button></div>`}
         <p class="legal-note">Al enviar aceptas los <a href="#/legal">Términos y condiciones</a>. Agéndalo verifica a cada trabajador y empresa; el pago es directo entre tú y quien hace el trabajo.</p>`;
       ff.innerHTML = `<div class="tot"><b id="tt"></b><span>${D.people > 1 || svc.u === 'hora' ? 'total estimado' : 'tu oferta'}</span></div><button class="btn btn-a" id="go" type="button"></button>`;
       function draw(){
         PL.$('#tt', ff).textContent = D.price ? PL.money(tot()) : 'S/ —';
-        PL.$('#ph', fb).textContent = D.direct ? `Se lo enviamos primero a ${dn()}.` : svc.u === 'hora' && D.price ? `${PL.money(D.price)} por hora × ${D.hours} h${D.people > 1 ? ` × ${D.people} personas` : ''}. Quien acepte, acepta tu precio.` : 'Quien acepte tu pedido, acepta tu precio. Si nadie acepta, puedes subirlo.';
+        PL.$('#ph', fb).textContent = D.direct ? `Se lo enviamos primero a ${dn().replace(/\.$/, "")}.` : svc.u === 'hora' && D.price ? `${PL.money(D.price)} por hora × ${D.hours} h${D.people > 1 ? ` × ${D.people} personas` : ''}. Quien acepte, acepta tu precio.` : 'Quien acepte tu pedido, acepta tu precio. Si nadie acepta, puedes subirlo.';
         PL.$('#go', ff).textContent = D.direct ? `Enviar a ${dn()}` : wt === 'ahora' ? 'Solicitar ahora' : wt === 'fecha' ? 'Agendar' : 'Publicar pedido';
         PL.$('#fbk', fb).hidden = !D.direct;
       }
@@ -375,17 +364,17 @@
     }
 
     function go(n){
-      if (STEPS[step] === donde && n !== step) fm.picker(false);
+      if (STEPS[step] === donde && n !== step && fm) fm.picker(false);
       step = n;
       PL.$('#fh', view).innerHTML = TITLES[n];
       PL.$$('#fsteps li', view).forEach((d, i) => { d.className = i < n ? 'done' : i === n ? 'now' : ''; });
-      flow.dataset.map = SIZE[STEPS[n].name] || 'm';
+      flow.dataset.map = STEPS[n] === donde && D.online ? 'none' : SIZE[STEPS[n].name] || 'm';
+      side();
       chip(D.loc.district || 'Tu zona');
       STEPS[n]();
       const panel = PL.$('.flow-panel', view); if (panel) panel.scrollTop = 0;
       if (n > 0) window.scrollTo(0, 0);
     }
-    fb.addEventListener('click', e => { if (!e.target.closest('[data-undirect]')) return; D.direct = null; D.directW = null; fav = null; STEPS[step](); });
     PL.$('#back', view).onclick = () => step > 0 ? go(step - 1) : history.length > 1 ? history.back() : PL.go('#/');
     go(0);
   }, {flow: true, tab: ''});

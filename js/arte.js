@@ -10,10 +10,13 @@
     servicios: S(-4, `<path d="M54 40V30a10 10 0 0 1 10-10h22a10 10 0 0 1 10 10v10" fill="none" stroke="#C2410C" stroke-width="9" stroke-linecap="round"/>
       <rect x="18" y="38" width="114" height="80" rx="18" fill="${OR}"/><rect x="18" y="68" width="114" height="7" fill="#E04A12"/>
       <rect x="61" y="58" width="28" height="26" rx="8" fill="#fff"/><rect x="70" y="67" width="10" height="8" rx="2.5" fill="${OR}"/>`),
-    clases: S(4, `<path d="M14 48q61-14 122 0v62q-61-12-122 0z" fill="#3A55C4"/>
-      <path d="M20 44q28-9 54 3v58q-26-10-54-2z" fill="#fff"/><path d="M76 47q26-12 54-3v59q-28-8-54 2z" fill="#fff"/>
-      <path d="M30 60q16-4 32 2M30 72q16-4 32 2M30 84q16-4 32 2M88 62q16-6 32-2M88 74q16-6 32-2" fill="none" stroke="${BE}" stroke-width="5" stroke-linecap="round"/>
-      <path d="M104 40v28l7-6 7 6V38z" fill="${OR}"/>`),
+    /* birrete: el tablero azul, la copa más oscura y la borla naranja */
+    clases: S(-5, `<path d="M38 64v26c0 11 17 19 37 19s37-8 37-19V64L75 80z" fill="#2C44A8"/>
+      <path d="M38 88c6 7 20 12 37 12s31-5 37-12v3c0 11-17 18-37 18s-37-7-37-18z" fill="#24398F"/>
+      <path d="M70 21a12 12 0 0 1 10 0l55 25c5 2.4 5 7.6 0 10L80 81a12 12 0 0 1-10 0L15 56c-5-2.4-5-7.6 0-10z" fill="#3A55C4"/>
+      <path d="M75 48l40 9v30" fill="none" stroke="${OR}" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="75" cy="48" r="6" fill="${OR}"/>
+      <path d="M109 86h12l3 20a4 4 0 0 1-4 4.5h-10a4 4 0 0 1-4-4.5z" fill="${OR}"/><rect x="109" y="82" width="12" height="7" rx="3" fill="#E04A12"/>`),
     emergencia: S(-3, `<path d="M75 10v14M32 28l10 10M118 28l-10 10M14 66h14M122 66h14" stroke="#E5342A" stroke-width="7" stroke-linecap="round"/>
       <path d="M44 100V74a31 31 0 0 1 62 0v26z" fill="#E5342A"/><rect x="58" y="62" width="9" height="26" rx="4.5" fill="#fff"/>
       <rect x="32" y="98" width="86" height="22" rx="8" fill="${DK}"/>`),
@@ -63,15 +66,27 @@
     if (shadow && !s.includes('<ellipse')) s = s.replace(/(<svg[^>]*>)/, '$1' + SHADOW);
     return `<span class="${cls}" aria-hidden="true">${s}</span>`;
   };
-  /* franja de entrada, de lado a lado (portada y app): Servicios y Clases arriba; Emergencia y Pedido personalizado abajo */
-  const cell = (href, cls, eti, ec, icon, title, p, art) => `<a class="mode ${cls}" href="${href}"><span class="go">${PL.ic('arrow')}</span><div><span class="eti ${ec}">${PL.ic(icon)}${eti}</span><h3>${title}</h3><p>${p}</p></div>${PL.art(art, 'mode-art', true)}</a>`;
-  PL.entryBand = (base = '', id = '') => `<section class="modes"${id ? ` id="${id}"` : ''} aria-label="Qué necesitas">
-      ${cell(base + '#/servicios', 'sv', 'Agenda', 'v', 'cal', 'Servicios', 'Hogar, belleza, cuidado, mascotas y más. Eliges el día y la hora.', 'prog')}
-      ${cell(base + '#/sector/clases', 'cl', 'Profesores', 'b', 'user', 'Clases particulares', 'Matemática, inglés, box, yoga y más. En tu casa u online.', 'clases')}
-    </section>
-    <section class="modes sm" aria-label="Urgente o a medida">
-      ${cell(base + '#/emergencia', 'em', 'Ahora', '', 'bolt', 'Emergencia', 'Si es urgente, alguien sale hacia ti hoy mismo.', 'ya')}
-      ${cell(base + '#/pedir/otro', 'pp', 'A medida', 't', 'plus', 'Pedido personalizado', 'Para lo que no está en la lista: lo describes y te llegan ofertas.', 'personal')}
+  /* franja de entrada, de lado a lado (portada y app). Cada celda entera lleva a su sección y, además,
+     tiene atajos directos (sectores, materias, emergencias comunes). Servicios y Clases arriba; Emergencia y Pedido personalizado abajo. */
+  const SECT_CHIPS = [['hogar', 'Hogar'], ['belleza', 'Belleza'], ['cuidado', 'Cuidado'], ['mascotas', 'Mascotas'], ['mudanza', 'Mudanzas'], ['eventos', 'Eventos'], ['ayuda', 'Encargos'], ['negocio', 'Negocios']];
+  const CLASS_CHIPS = [['matematica', 'Matemática'], ['ingles', 'Inglés'], ['profesor', 'Refuerzo escolar'], ['musica', 'Música'], ['box', 'Box'], ['yoga', 'Yoga']];
+  const SOS_CHIPS = [['gasfitero', 'Fuga de agua'], ['electricista', 'Se fue la luz'], ['cerrajero', 'Me quedé afuera']];
+  const chip = (href, label, art) => `<a class="eb-chip${art ? ' art' : ''}" href="${href}">${art ? PL.art(art, 'eb-chip-art') : ''}<span>${label}</span></a>`;
+  const ebCell = o => `<div class="eb-cell ${o.cls}">
+      <a class="eb-main" href="${o.href}" aria-label="${o.title}"></a>
+      ${PL.art(o.art, 'eb-art', true)}
+      <div class="eb-txt"><span class="eti ${o.ec}">${PL.ic(o.icon)}${o.eti}</span><h3>${o.title}</h3><p>${o.p}</p></div>
+      ${o.chips ? `<div class="eb-chips">${o.chips}</div>` : ''}${o.extra || ''}
+      <span class="go" aria-hidden="true">${PL.ic('arrow')}</span></div>`;
+  PL.entryBand = (base = '', id = '') => `<section class="eb"${id ? ` id="${id}"` : ''} aria-label="Qué necesitas">
+      ${ebCell({href: base + '#/servicios', cls: 'sv', eti: 'Agenda', ec: 'v', icon: 'cal', title: 'Servicios', p: 'Eliges el servicio, a la persona y el día.', art: 'prog',
+        chips: SECT_CHIPS.map(([id, n]) => chip(`${base}#/sector/${id}`, n, id)).join('')})}
+      ${ebCell({href: base + '#/sector/clases', cls: 'cl', eti: 'Profesores', ec: 'b', icon: 'user', title: 'Clases particulares', p: 'En tu casa u online, para todas las edades.', art: 'clases',
+        chips: CLASS_CHIPS.map(([id, n]) => chip(`${base}#/servicio/${id}`, n)).join('')})}
+      ${ebCell({href: base + '#/emergencia', cls: 'em', eti: 'Hoy mismo', ec: '', icon: 'bolt', title: 'Emergencia', p: 'Alguien cerca sale hacia ti lo antes posible.', art: 'ya',
+        chips: SOS_CHIPS.map(([id, t]) => chip(`${base}#/servicio/${id}?m=ya&t=${encodeURIComponent(t)}`, t)).join('')})}
+      ${ebCell({href: base + '#/pedir/otro', cls: 'pp', eti: 'A medida', ec: 't', icon: 'plus', title: 'Pedido personalizado', p: 'Para lo que no está en la lista: lo describes y te llegan ofertas.', art: 'personal',
+        extra: `<span class="eb-ask" aria-hidden="true">${PL.ic('chat')}<span>Ej.: armar una repisa y colgar dos cuadros</span></span>`})}
     </section>`;
   /* sectores en franja: celdas pegadas, de lado a lado */
   PL.sectCell = (c, base = '') => `<a class="mode" href="${base}#/sector/${c.id}" data-c="${c.id}"><span class="go">${PL.ic('arrow')}</span><div><h3>${PL.esc(c.name)}</h3><p>${PL.esc(c.ex || '')}</p></div>${PL.art(c.id, 'mode-art', true)}</a>`;

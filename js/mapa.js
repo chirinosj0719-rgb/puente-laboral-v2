@@ -131,7 +131,7 @@
   const PIN = '<svg viewBox="0 0 44 54" aria-hidden="true"><path d="M22 52S4 34.6 4 20.5a18 18 0 0 1 36 0C40 34.6 22 52 22 52z" fill="#FF5A1F" stroke="#fff" stroke-width="3"/><circle cx="22" cy="20.5" r="6.5" fill="#fff"/></svg>';
   PL.PIN_SVG = PIN;
   const pinHtml = w => !w.name ? `<span class="mk-dot" style="background:${w.color || '#FF5A1F'}"></span>`
-    : !w.isBiz && PL.avSrc(w.name) ? `<span class="mk-av" style="background:${PL.avBg(w.name)}"><img src="${PL.avSrc(w.name)}" alt=""></span>`
+    : !w.isBiz && PL.isPerson && PL.isPerson(w.name) ? `<span class="mk-av face">${PL.face(w.name)}</span>`
     : `<span class="mk-av ini" style="background:${w.color || '#FFE3D4'}">${PL.esc(PL.initials(w.name))}</span>`;
   const icon = (html, size, cls = '') => L.divIcon({className: 'mk ' + cls, html, iconSize: [size, size], iconAnchor: [size / 2, size / 2]});
 

@@ -165,8 +165,11 @@
   PL.avSrc = name => PL.DEMO.workers.includes(name) ? `img/av/${PL.avSlug(name)}.png` : '';
   PL.AV_BG = ['#FFE3D4', '#DCF2E8', '#ECE8FF', '#FFF1C9', '#FFD9C4', '#E3EEFC'];
   PL.avBg = name => PL.AV_BG[Math.max(0, PL.DEMO.workers.indexOf(name)) % PL.AV_BG.length];
-  PL.avatar = (name, color, cls = '') => PL.avSrc(name)
-    ? `<span class="av pic ${cls}" style="background:${PL.avBg(name)}" aria-hidden="true"><img src="${PL.avSrc(name)}" alt="" loading="lazy"></span>`
+  /* las personas de ejemplo llevan su retrato plano (js/caras.js); tú, los clientes y las empresas, iniciales */
+  PL.isPerson = name => !!PL.face && typeof name === 'string' && /\S\s+\S/.test(name) && !(PL.DEMO.clients || []).includes(name)
+    && !(PL.me && PL.me() && PL.me().name === name) && !(PL.bizList && PL.bizList().some(b => b.n === name));
+  PL.avatar = (name, color, cls = '') => PL.isPerson(name)
+    ? `<span class="av face ${cls}" aria-hidden="true">${PL.face(name)}</span>`
     : `<span class="av ${cls}" style="background:${color}" aria-hidden="true">${PL.esc(PL.initials(name))}</span>`;
   /* trabajadores de un servicio: siempre los mismos para ese oficio */
   PL.svcWorkers = (svcId, n = 6) => {
@@ -182,7 +185,7 @@
     const km = +PL.rnd(.6, 4.6).toFixed(1);
     return {name, color: PL.pick(PL.DEMO.colors), rating: +PL.rnd(4.5, 5).toFixed(1), jobs: PL.ri(8, 240), years: PL.ri(1, 14), km, eta: Math.round(km * 4 + PL.ri(3, 7)), bg: Math.random() > .3, phone: `9${PL.ri(10, 99)} *** ${PL.ri(100, 999)}`};
   };
-  PL.footer = () => `<footer class="foot"><div class="foot-in"><span>© 2026 Agéndalo</span><span>${PL.$('#view') ? '<a href="index.html">Qué es Agéndalo</a> · <a href="#/trabajar">Quiero trabajar</a>' : '<a href="app.html">Abrir la app</a> · <a href="app.html#/trabajar">Quiero trabajar</a>'}</span></div><div class="foot-name" aria-hidden="true">Agéndalo</div></footer>`;
+  PL.footer = () => `<footer class="foot"><div class="foot-in"><span>© 2026 Agéndalo</span><span>${PL.$('#view') ? '<a href="index.html">Qué es Agéndalo</a>' : '<a href="app.html">Abrir la app</a> · <a href="app.html#/trabajar">Quiero trabajar</a>'}</span></div><div class="foot-name" aria-hidden="true">Agéndalo</div></footer>`;
 
   PL.demoInfo = () => PL.sheet({
     title: 'Estás viendo la demo',

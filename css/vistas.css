@@ -597,7 +597,7 @@ body[data-view="inicio"]:not(.scrolled) .burger,body[data-view="trabajar"]:not(.
 .acct-top .av{width:32px;height:32px;font-size:.72rem}
 .acct-top + .help-top,.acct-top + .land-open{margin-left:0}
 body[data-view="inicio"]:not(.scrolled) .acct-top,body[data-view="trabajar"]:not(.scrolled) .acct-top{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.22);color:#fff}
-@media (max-width:560px){.acct-top span{display:none}.acct-top{width:40px;padding:0;justify-content:center}.acct-top.me{width:auto;padding:0 3px}}
+@media (max-width:560px){.acct-top>span:not(.av){display:none}.acct-top{width:40px;padding:0;justify-content:center}.acct-top.me{width:auto;padding:0 3px}}
 
 /* ——— ingresar / crear cuenta ——— */
 body[data-view="acceso"] .tabs{display:none}
