@@ -12,21 +12,22 @@
   PL.route('perfil', view => {
     const S = PL.S, c = S.client, acc = PL.me();
     const hasPw = !!acc && (acc.fb ? !!acc.pw : !!acc.hash);
+    const noPw = !!(acc && acc.fb && PL.ingreso && !PL.ingreso().correo && !acc.pw), gOnly = !!(acc && acc.fb && acc.google && !acc.pw);
     let dist = c.district;
     view.innerHTML = page('user', 'Tu cuenta', 'Información personal', `
       <form id="pf" class="set-f">
         <label class="field"><span>Nombre y apellido</span><input class="in" id="p-n" autocomplete="name" maxlength="60" value="${PL.esc(acc ? acc.name : c.name)}"></label>
-        <div class="row2"><label class="field"><span>Correo</span><input class="in" id="p-e" type="email" autocomplete="email" value="${PL.esc(acc ? acc.email : c.email || '')}"></label><label class="field"><span>Celular</span><input class="in" id="p-c" type="tel" inputmode="numeric" maxlength="9" placeholder="9XXXXXXXX" value="${PL.esc(c.phone)}"></label></div>
+        <div class="row2"><label class="field"><span>Correo</span><input class="in" id="p-e" type="email" autocomplete="email" value="${PL.esc(acc ? acc.email : c.email || '')}"${gOnly ? ' readonly title="Es el correo de tu cuenta de Google"' : ''}></label><label class="field"><span>Celular</span><input class="in" id="p-c" type="tel" inputmode="numeric" maxlength="9" placeholder="9XXXXXXXX" value="${PL.esc(c.phone)}"></label></div>
         <p class="blk-t" style="font-size:.9rem;font-weight:600">Distrito</p>
         <button class="in" type="button" id="p-d" style="display:flex;align-items:center;gap:10px;text-align:left;cursor:pointer;margin-bottom:18px">${PL.ic('pin')}<span style="flex:1">${PL.esc(dist || 'Elige tu distrito')}</span>${PL.ic('chev')}</button>
         <button class="btn btn-t" type="submit">Guardar</button>
         ${acc && acc.fb && acc.pw && acc.login && !acc.verified ? `<p class="set-note">${PL.ic('mail')}<span>Confirma tu correo con el enlace que te enviamos a ${PL.esc(acc.login)}. <button class="au-link" type="button" id="p-v">Enviarlo otra vez</button></span></p>` : ''}
       </form>
-      <div class="set-sec" id="clave"><h2>${PL.ic('lock')}Contraseña</h2>
+      ${noPw ? `<div class="set-sec" id="clave"><h2>${PL.ic('lock')}Cómo ingresas</h2><p class="muted">${acc.google ? `Con tu cuenta de Google (${PL.esc(acc.email)}). Tu contraseña la maneja Google.` : 'Con tu celular.'}</p></div>` : `<div class="set-sec" id="clave"><h2>${PL.ic('lock')}Contraseña</h2>
         ${acc && !hasPw ? `<p class="muted" style="margin-bottom:14px">${acc.google ? `Ingresas con tu cuenta de Google (${PL.esc(acc.email)}). También puedes crear una contraseña para ingresar con tu correo.` : acc.email ? `Ingresas con tu celular. Puedes crear una contraseña para ingresar también con tu correo (${PL.esc(acc.email)}).` : 'Ingresas con tu celular. Si agregas tu correo arriba, puedes crear una contraseña para ingresar también con él.'}</p><form id="kf" class="set-f"><div class="row2"><label class="field"><span>Contraseña</span><input class="in" id="k-1" type="password" autocomplete="new-password"></label><label class="field"><span>Repite la contraseña</span><input class="in" id="k-2" type="password" autocomplete="new-password"></label></div><button class="btn btn-l" type="submit">Crear contraseña</button></form>`
           : acc ? `<form id="kf" class="set-f"><label class="field"><span>Contraseña actual</span><input class="in" id="k-0" type="password" autocomplete="current-password"></label><div class="row2"><label class="field"><span>Nueva contraseña</span><input class="in" id="k-1" type="password" autocomplete="new-password"></label><label class="field"><span>Repite la nueva</span><input class="in" id="k-2" type="password" autocomplete="new-password"></label></div><button class="btn btn-l" type="submit">Cambiar contraseña</button></form>${acc.fb ? '<button class="au-link set-link" type="button" id="kfg">¿No recuerdas la actual? Te enviamos un enlace a tu correo</button>' : ''}`
-          : `<p class="muted" style="margin-bottom:14px">Crea una cuenta con tu correo y una contraseña para proteger tus datos.</p><a class="btn btn-l" href="#/crear-cuenta?next=%23%2Fperfil">Crear cuenta</a>`}
-      </div>`);
+          : `<p class="muted" style="margin-bottom:14px">Crea una cuenta para guardar tus datos y volver a contratar a quien te ayudó.</p><a class="btn btn-l" href="#/crear-cuenta?next=%23%2Fperfil">Crear cuenta</a>`}
+      </div>`}`);
     PL.$('#p-d', view).onclick = () => PL.pickDistrict(dist, d => { dist = d; PL.$('#p-d span', view).textContent = d; });
     PL.$('#pf', view).onsubmit = async e => {
       e.preventDefault();
@@ -39,7 +40,8 @@
           if (n && n !== acc.name) await PL.fb.setName(n);
           c.name = n || c.name; c.phone = ph; c.district = dist;
           if (!acc.cel) acc.phone = ph;
-          if (acc.login && em && em !== acc.login) { await PL.fb.changeEmail(em); PL.save(); PL.toast(`Te enviamos un enlace a ${em}. Tu correo cambia cuando lo confirmes.`, 5200); return; }
+          if (gOnly) { /* el correo es el de Google */ }
+          else if (acc.login && em && em !== acc.login) { await PL.fb.changeEmail(em); PL.save(); PL.toast(`Te enviamos un enlace a ${em}. Tu correo cambia cuando lo confirmes.`, 5200); return; }
           if (!acc.login) { acc.email = em; c.email = em; }
           PL.save(); if (PL.syncTop) PL.syncTop(); PL.toast('Datos guardados');
         } catch (x) { PL.toast(PL.fb.msg(x), 4600); }
@@ -161,7 +163,7 @@
     view.innerHTML = page('gear', 'Tu cuenta', 'Ajustes', `
       <div class="list">
         <a href="#/perfil">${PL.ic('user')}<span>Información personal</span>${PL.ic('chev', 'i chev')}</a>
-        <a href="#/perfil?clave">${PL.ic('lock')}<span>Contraseña</span>${PL.ic('chev', 'i chev')}</a>
+        ${PL.ingreso && !PL.ingreso().correo ? '' : `<a href="#/perfil?clave">${PL.ic('lock')}<span>Contraseña</span>${PL.ic('chev', 'i chev')}</a>`}
         <a href="#/direcciones">${PL.ic('pin')}<span>Direcciones</span>${PL.ic('chev', 'i chev')}</a>
         <a href="#/billetera">${PL.ic('wallet')}<span>Método de pago</span>${PL.ic('chev', 'i chev')}</a>
         <a href="#/notificaciones">${PL.ic('bell')}<span>Notificaciones</span>${PL.ic('chev', 'i chev')}</a>

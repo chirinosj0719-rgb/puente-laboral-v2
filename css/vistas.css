@@ -882,3 +882,6 @@ body[data-view="acceso"]{padding-bottom:0}
   .modes.sg .mode:last-child:nth-child(3n+2){grid-column:span 2}
   .modes.sg .mode:last-child:nth-child(3n+1){grid-column:span 3}
 }
+
+.au-solo .au-err:empty{display:none}
+.au-solo .au-gnote{margin-top:14px;line-height:1.5}

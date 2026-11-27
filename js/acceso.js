@@ -64,9 +64,16 @@
     'auth/billing-not-enabled': 'Por ahora no podemos enviar SMS. Ingresa con Google o con tu correo.',
     'auth/error-code:-39': 'No pudimos enviar el SMS a ese número en este momento. Espera unos minutos o ingresa con Google o con tu correo.'
   };
-  /* Firebase solo envía SMS si el proyecto tiene facturación (plan Blaze). Sin ella, el celular no se ofrece. */
+  /* formas de ingresar que se ofrecen (PL.CFG.INGRESO). Firebase solo envía SMS si el proyecto tiene
+     facturación (plan Blaze); si un envío falla por eso, el celular deja de ofrecerse. */
   let smsOff = false;
-  const SMS = () => !FBC() || (PL.CFG.SMS !== false && !smsOff);
+  const M = () => {
+    if (!FBC()) return {google: false, correo: true, sms: true};
+    const c = PL.CFG.INGRESO || {};
+    return {google: c.google !== false, correo: c.correo !== false, sms: c.sms !== false && !smsOff};
+  };
+  PL.ingreso = M;
+  const SMS = () => M().sms;
   const NOSMS = new Set(['auth/billing-not-enabled', 'auth/operation-not-allowed', 'auth/quota-exceeded']);
   /* la cuenta local que acompaña al usuario de Firebase (para el perfil, el menú y los pedidos) */
   function upsert(u, extra = {}){
@@ -256,13 +263,25 @@
         return;
       }
       /* inicio */
-      const sms = SMS(); if (!sms) st.me = 'mail';
+      const m = M(), sms = m.sms, mail = m.correo;
+      /* solo Google: un botón y nada más (entrar y crear la cuenta son lo mismo) */
+      if (!sms && !mail) {
+        host.innerHTML = `<div class="au au-solo">
+          <div class="au-h"><h2>${up ? 'Crea tu cuenta' : 'Ingresa a tu cuenta'}</h2><p>${o.reason ? PL.esc(o.reason) : 'Con tu cuenta de Google.'}</p></div>
+          <div class="au-gwrap"><button class="btn btn-full au-gbtn" type="button" id="au-g"${PL.fb.auth() ? '' : ' disabled'}>${GLOGO}<span>Continuar con Google</span></button></div>
+          <p class="au-err" id="au-err" role="alert"></p>
+          <p class="au-gnote">Si es tu primera vez, se crea tu cuenta. Al continuar aceptas los <a href="#/legal" target="_blank">Términos y condiciones</a> y la <a href="#/legal" target="_blank">Política de privacidad</a>.</p>
+        </div>`;
+        const g0 = PL.$('#au-g', host); g0.onclick = () => google(g0);
+        return;
+      }
+      if (!sms) st.me = 'mail'; else if (!mail) st.me = 'cel';
       const cel = st.me === 'cel';
       host.innerHTML = `<div class="au">
         <div class="au-h"><h2>${up ? 'Crea tu cuenta' : 'Ingresa a tu cuenta'}</h2><p>${o.reason ? PL.esc(o.reason) : up ? 'Para pedir servicios, guardar tus direcciones y volver a contratar a quien te ayudó.' : fb ? (sms ? 'Con Google, tu celular o tu correo.' : 'Con Google o con tu correo.') : 'Con tu celular o con tu correo.'}</p></div>
-        ${fb ? `<div class="au-gwrap"><button class="btn btn-full au-gbtn" type="button" id="au-g"${PL.fb.auth() ? '' : ' disabled'}>${GLOGO}<span>${up ? 'Crear cuenta con Google' : 'Continuar con Google'}</span></button>
+        ${fb && m.google ? `<div class="au-gwrap"><button class="btn btn-full au-gbtn" type="button" id="au-g"${PL.fb.auth() ? '' : ' disabled'}>${GLOGO}<span>${up ? 'Crear cuenta con Google' : 'Continuar con Google'}</span></button>
           ${up ? '<p class="au-gnote">Al continuar con Google aceptas los <a href="#/legal" target="_blank">Términos</a> y la <a href="#/legal" target="_blank">Política de privacidad</a>.</p>' : ''}</div><p class="au-or"><span>o con</span></p>` : ''}
-        ${sms ? `<div class="seg au-seg" role="group" aria-label="Cómo ${up ? 'crear la cuenta' : 'ingresar'}"><button type="button" data-me="cel" aria-pressed="${cel}">${PL.ic('phone')}Celular</button><button type="button" data-me="mail" aria-pressed="${!cel}">${PL.ic('mail')}Correo</button></div>` : ''}
+        ${sms && mail ? `<div class="seg au-seg" role="group" aria-label="Cómo ${up ? 'crear la cuenta' : 'ingresar'}"><button type="button" data-me="cel" aria-pressed="${cel}">${PL.ic('phone')}Celular</button><button type="button" data-me="mail" aria-pressed="${!cel}">${PL.ic('mail')}Correo</button></div>` : ''}
         <form id="au-f" novalidate>
           ${up ? `<label class="field"><span>Nombre y apellido</span><input class="in" id="au-n" autocomplete="name" maxlength="60" value="${PL.esc(st.name || '')}"></label>` : ''}
           ${cel ? `<label class="field"><span>Celular</span><span class="tel"><span class="cc">+51</span><input class="in" id="au-ph" type="tel" inputmode="numeric" autocomplete="tel-national" maxlength="11" placeholder="9XX XXX XXX" value="${PL.esc(PL.fmtPhone(st.phone))}"></span></label>`
@@ -277,7 +296,7 @@
         <p class="au-alt">${up ? '¿Ya tienes cuenta?' : '¿Todavía no tienes cuenta?'} <button type="button" class="au-link" data-sw>${up ? 'Ingresa' : 'Crea una'}</button></p>
       </div>`;
       const g = PL.$('#au-g', host); if (g) g.onclick = () => google(g);
-      if (sms) PL.$('.au-seg', host).onclick = e => { const b = e.target.closest('[data-me]'); if (!b) return; keep(); st.me = b.dataset.me; draw(); };
+      if (sms && mail) PL.$('.au-seg', host).onclick = e => { const b = e.target.closest('[data-me]'); if (!b) return; keep(); st.me = b.dataset.me; draw(); };
       PL.$('[data-sw]', host).onclick = () => { keep(); st.mode = up ? 'in' : 'up'; draw(); if (o.onMode) o.onMode(st.mode); };
       const ph = PL.$('#au-ph', host);
       if (ph) ph.oninput = () => { const d = digits(ph.value).slice(0, 9); ph.value = d.length > 6 ? `${d.slice(0, 3)} ${d.slice(3, 6)} ${d.slice(6)}` : d.length > 3 ? `${d.slice(0, 3)} ${d.slice(3)}` : d; };
