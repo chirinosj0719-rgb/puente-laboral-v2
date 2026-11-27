@@ -1,17 +1,17 @@
 /* Agéndalo · lado del cliente: inicio, mis pedidos y mis trabajadores */
 (function(){
   const PL = window.PL;
-  PL.mode = PL.mode || 'ya';
+  PL.mode = PL.mode || 'prog';
 
   PL.stLabel = o => {
     const w = o.worker ? PL.short(o.worker.name) : '';
     return ({
-      buscando: [o.mode === 'prog' ? 'Recibiendo ofertas' : 'Buscando trabajador…', 'a'], programado: [`${w} va el ${PL.whenText(o.when).toLowerCase()}`, 'm'],
+      buscando: [o.mode === 'prog' ? 'Recibiendo ofertas' : 'Buscando trabajador…', 'a'], programado: [o.when && o.when.type === 'flex' ? `${w} · fecha a coordinar` : `${w} va el ${PL.whenText(o.when).toLowerCase()}`, 'm'],
       en_camino: [`${w} está en camino`, 'a'], llego: [`${w} llegó`, 'v'], trabajando: [`${w} está trabajando`, 'v'],
-      pagar: ['Falta pagar', 'r'], calificar: [`Califica a ${w}`, 'a'], terminado: ['Terminado', 'v'], cancelado: ['Cancelado', 'r']
+      calificar: [`Califica a ${w}`, 'a'], terminado: ['Terminado', 'v'], cancelado: ['Cancelado', 'r']
     })[o.status] || [o.status, 'o'];
   };
-  const SHORT = {buscando: 'Ofertas', programado: 'Programado', en_camino: 'En camino', llego: 'Llegó', trabajando: 'Trabajando', pagar: 'Por pagar', calificar: 'Por calificar', terminado: 'Terminado', cancelado: 'Cancelado'};
+  const SHORT = {buscando: 'Ofertas', programado: 'Programado', en_camino: 'En camino', llego: 'Llegó', trabajando: 'Trabajando', calificar: 'Por calificar', terminado: 'Terminado', cancelado: 'Cancelado'};
   PL.stPill = o => `<span class="pill ${PL.stLabel(o)[1]}">${SHORT[o.status] || o.status}</span>`;
 
 
@@ -34,7 +34,7 @@
     PL.sheet({title: `Volver a pedir a <span class="k">${PL.esc(first)}</span>`,
       body: `<div class="direct">${PL.avatar(f.name, f.color)}<div><b>${PL.esc(f.name)}</b><span>Ya trabajó contigo</span></div><span class="heart" aria-hidden="true">${PL.ic('heart')}</span></div>
         ${list.length > 1 ? `<p class="blk-t">¿Qué servicio?</p><div class="chips" id="rs">${list.map(id => `<button class="chip" type="button" data-s="${id}" aria-pressed="${id === sel}">${PL.esc(PL.svc(id).n)}</button>`).join('')}</div><p class="blk-t">¿Cuándo?</p>` : ''}
-        <div class="rehire"><button class="ya" type="button" data-m="ya"><span class="ic">${PL.ic('bolt')}</span><span><b>Inmediato</b><span>Hoy, lo antes posible</span></span></button><button class="prog" type="button" data-m="prog"><span class="ic">${PL.ic('cal')}</span><span><b>Programado</b><span>Elige día y hora</span></span></button></div>
+        <div class="rehire"><button class="prog" type="button" data-m="prog"><span class="ic">${PL.ic('cal')}</span><span><b>Agendar</b><span>Eliges día y hora</span></span></button><button class="ya" type="button" data-m="ya"><span class="ic">${PL.ic('bolt')}</span><span><b>Lo antes posible</b><span>Hoy mismo, si puede</span></span></button></div>
         <p class="muted" style="font-size:.88rem;margin-top:12px">Le llega primero a ${PL.esc(first)}. Si no puede, te avisamos.</p>`,
       foot: `<button class="btn btn-l" type="button" id="rchat">${PL.ic('chat')}Escribirle</button>`,
       onOpen: s => {
@@ -48,23 +48,18 @@
   };
   PL.favChat = f => { if (!f.chat) f.chat = []; PL.chat({worker: f, chat: f.chat, eta: 10, status: '', greet: `Hola, soy ${f.name.split(' ')[0]}. ¿En qué te puedo ayudar?`}); };
 
-  /* ——— inicio de la app (la explicación está en la landing, index.html) ———
-     Arriba, el mapa real de tu dirección con la zona de servicio; debajo, servicios según el modo y el catálogo por categoría. */
-  const FEAT = {ya: ['gasfitero', 'electricista', 'todero', 'cerrajero', 'cargador', 'limpieza'], prog: ['limpieza', 'ninera', 'mudanza', 'deposito', 'pintor', 'mesero']};
-  const examples = s => s.other ? 'Tú lo describes' : s.t.slice(0, 3).join(' · ');
-  function bigTile(s, mode){
-    const onlyProg = mode === 'ya' && !PL.canNow(s);
-    return `<button class="big-svc" type="button" data-svc="${s.id}" data-c="${s.c}"><span class="svc-ic">${PL.si(s.i)}</span><span class="bs-go" aria-hidden="true">${PL.ic('arrow')}</span><b>${PL.esc(s.n)}</b><span>${onlyProg ? 'Solo programado' : PL.esc(s.t.slice(0, 2).join(' · ') || 'Tú lo describes')}</span></button>`;
-  }
-  function row(s, mode){
-    const onlyProg = mode === 'ya' && !PL.canNow(s);
-    return `<button class="svc-row${onlyProg ? ' off' : ''}" type="button" data-svc="${s.id}" data-c="${s.c}"><span class="svc-ic">${PL.si(s.i)}</span><span class="sr-t"><b>${PL.esc(s.n)}</b><span>${PL.esc(examples(s))}</span></span>${onlyProg ? '<span class="pill m">Programado</span>' : s.team ? `<span class="sr-team" title="Puedes pedir varias personas">${PL.ic('users')}</span>` : ''}${PL.ic('chev', 'i chev')}</button>`;
-  }
+  /* ——— inicio de la app: sencillo, como una app de comida ———
+     Entras y vas directo a lo que necesitas: Servicios (profesionales y oficios), y debajo Emergencia y Pedido personalizado.
+     Las empresas no tienen zona propia: aparecen al pedir un servicio, antes que las personas independientes. */
+  const examples = s => s.other ? 'Lo describes y te llegan ofertas' : s.t.slice(0, 2).join(' · ');
+  /* servicio: fila con su ícono plano · sector: tarjeta de color con su ícono */
+  PL.svcRow = s => `<button class="svc-row" type="button" data-svc="${s.id}" data-c="${s.c}"><span class="svc-ic">${PL.si(s.i)}</span><span class="sr-t"><b>${PL.esc(s.n)}</b><span>${PL.esc(examples(s))}</span></span>${s.team ? `<span class="sr-team" title="Puedes pedir varias personas">${PL.ic('users')}</span>` : ''}${PL.ic('chev', 'i chev')}</button>`;
+  PL.sectCard = c => PL.sectCell(c);
   const locTxt = l => l && l.line ? `${l.line}, ${l.district}` : l && l.district ? l.district : 'Elige dónde necesitas el servicio';
+  const goSvc = e => { const b = e.target.closest('[data-svc]'); if (b) PL.go(`#/pedir/${b.dataset.svc}`); };
 
   PL.route('', (view, args, qs) => {
     const S = PL.S;
-    if (qs.get('m') === 'ya' || qs.get('m') === 'prog') PL.mode = qs.get('m');
     const act = PL.activeOrders().filter(o => !PL.isUpcoming(o))[0] || PL.activeOrders()[0];
     const me = PL.me(), first = me && me.name ? me.name.split(' ')[0] : '';
     const loc = PL.startLoc ? PL.startLoc() : null;
@@ -74,27 +69,14 @@
       <div class="hh-in">
         <button class="loc-eti" type="button" id="hloc" aria-label="Cambiar dirección">${PL.ic('pin')}<span>${PL.esc(locTxt(S.lastLoc || loc))}</span>${PL.ic('chev')}</button>
         <h1>${first ? `Hola, ${PL.esc(first)}.` : 'Hola.'} <span class="k">¿Qué necesitas?</span></h1>
-        <div class="search-box">${PL.ic('search')}<input id="hq" type="search" placeholder="Busca: gasfitero, niñera, chofer…" aria-label="Buscar un servicio" autocomplete="off"></div>
-        <div class="mode-sw" role="radiogroup" aria-label="Cómo lo necesitas">
-          <button type="button" role="radio" data-mode="ya"><span class="mi">${PL.ic('bolt')}</span><span><b>Inmediato</b><span>Alguien sale hacia ti ahora</span></span></button>
-          <button type="button" role="radio" data-mode="prog"><span class="mi">${PL.ic('cal')}</span><span><b>Programado</b><span>Eliges día y hora</span></span></button>
-        </div>
+        <div class="search-box">${PL.ic('search')}<input id="hq" type="search" placeholder="Busca: gasfitero, uñas, masajes, niñera…" aria-label="Buscar un servicio" autocomplete="off"></div>
       </div>
     </section>
+    ${act ? `<div class="wrap">${live(act)}</div>` : ''}
+    <div id="entries">${PL.entryBand()}</div>
     <div class="wrap">
-      ${act ? live(act) : ''}
-      <section class="feat-sec"><div class="feat-h"><h2 id="featT"></h2><span class="muted" id="featS"></span></div><div class="big-rail" id="feat"></div></section>
+      <section class="sres" id="sres" hidden><div class="feat-h"><h2>Resultados</h2></div><div id="grid"></div></section>
       ${S.favs.length ? `<section class="favs-sec"><div class="favs-h"><div><span class="eti">${PL.ic('heart')}Mis trabajadores</span><h2>Vuelve a llamar a quien te gustó</h2></div><a href="#/equipo">Ver todos</a></div><div class="favs" id="favs">${S.favs.map(favCard).join('')}</div></section>` : ''}
-      <section class="app-cat" id="servicios">
-        <div class="app-cat-h"><h2>Todos los servicios</h2></div>
-        <nav class="cat-rail" id="rail" aria-label="Ir a una categoría"></nav>
-        <div id="grid"></div>
-      </section>
-      <section class="sec" id="empresas">
-        <div class="sec-h"><span class="eti">${PL.ic('bag')}Empresas</span><h2>Empresas</h2></div>
-        <div class="ords">${PL.bizList().slice(0, 4).map(PL.bizRow).join('')}</div>
-        <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:22px"><a class="btn btn-t" href="#/empresas">Ver todas las empresas<span class="arr">${PL.ic('arrow')}</span></a><a class="btn btn-l" href="#/empresa-registro">Registrar mi empresa</a></div>
-      </section>
     </div>
     ${PL.footer()}`;
 
@@ -107,41 +89,77 @@
     hmap.onclick = pickAddr;
     PL.$('#hloc', view).onclick = pickAddr;
 
+    /* buscar: los servicios que coinciden reemplazan a las entradas mientras escribes */
+    const grid = PL.$('#grid', view), hq = PL.$('#hq', view);
     let q = qs.get('q') || '';
-    const grid = PL.$('#grid', view), rail = PL.$('#rail', view), hq = PL.$('#hq', view);
-    function drawMode(){
-      PL.$$('[data-mode]', view).forEach(b => b.setAttribute('aria-checked', b.dataset.mode === PL.mode));
-      PL.$('#featT', view).textContent = PL.mode === 'ya' ? 'Para lo urgente' : 'Para planificar';
-      PL.$('#featS', view).textContent = PL.mode === 'ya' ? 'Quien acepta sale hacia tu dirección' : 'Eliges el día y la hora; puede repetirse';
-      PL.$('#feat', view).innerHTML = FEAT[PL.mode].map(id => PL.svc(id)).filter(Boolean).map(s => bigTile(s, PL.mode)).join('');
-    }
-    function drawRail(){ rail.innerHTML = PL.CATS.map(c => `<a class="chip" href="#cat-${c.id}" data-c="${c.id}">${c.name}</a>`).join(''); }
     function draw(){
       const nq = PL.norm(q.trim());
-      rail.hidden = !!nq;
-      if (nq) {
-        const list = PL.SVCS.filter(s => PL.norm(s.n + ' ' + s.t.join(' ') + ' ' + PL.cat(s.c).name).includes(nq));
-        grid.innerHTML = list.length ? `<div class="svc-list">${list.map(s => row(s, PL.mode)).join('')}</div>` :
-          `<div class="svc-empty empty"><svg class="big si" viewBox="0 0 48 48" aria-hidden="true">${PL.SI.otr}</svg><h3>No encontramos “${PL.esc(q.trim())}”</h3><p>Pídelo igual: lo describes y te llegan ofertas.</p><a class="btn btn-t" href="#/pedir/otro?m=${PL.mode}&d=${encodeURIComponent(q.trim())}">Pedir “${PL.esc(q.trim())}”</a></div>`;
-        return;
-      }
-      grid.innerHTML = PL.CATS.map(c => {
-        const list = PL.SVCS.filter(s => s.c === c.id && !s.other);
-        return list.length ? `<div class="cat-block" id="cat-${c.id}"><h3>${PL.esc(c.name)}</h3><div class="svc-list">${list.map(s => row(s, PL.mode)).join('')}</div></div>` : '';
-      }).join('') + `<div class="cat-block"><div class="svc-list">${row(PL.svc('otro'), PL.mode)}</div></div>`;
+      PL.$('#entries', view).hidden = !!nq; PL.$('#sres', view).hidden = !nq;
+      if (!nq) return;
+      const list = PL.SVCS.filter(s => PL.norm(s.n + ' ' + s.t.join(' ') + ' ' + PL.cat(s.c).name + ' ' + (s.g || '')).includes(nq));
+      grid.innerHTML = list.length ? `<div class="svc-list">${list.map(PL.svcRow).join('')}</div>` :
+        `<div class="svc-empty empty"><svg class="big si" viewBox="0 0 48 48" aria-hidden="true">${PL.SI.otr}</svg><h3>No encontramos “${PL.esc(q.trim())}”</h3><p>Pídelo igual: lo describes y te llegan ofertas.</p><a class="btn btn-t" href="#/pedir/otro?d=${encodeURIComponent(q.trim())}">Pedir “${PL.esc(q.trim())}”</a></div>`;
     }
-    hq.value = q;
-    drawMode(); drawRail(); draw();
-    PL.$('.mode-sw', view).onclick = e => { const b = e.target.closest('[data-mode]'); if (!b) return; PL.mode = b.dataset.mode; drawMode(); draw(); };
-    rail.onclick = e => { const b = e.target.closest('[data-c]'); if (!b) return; e.preventDefault(); const t = PL.$('#cat-' + b.dataset.c, view); if (t) t.scrollIntoView({behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start'}); };
-    const open = e => { const b = e.target.closest('[data-svc]'); if (!b) return; const s = PL.svc(b.dataset.svc); PL.go(`#/pedir/${s.id}?m=${PL.canNow(s) ? PL.mode : 'prog'}`); };
-    grid.onclick = open; PL.$('#feat', view).onclick = open;
+    grid.onclick = goSvc;
+    hq.value = q; draw();
     hq.oninput = () => { q = hq.value; draw(); };
-    hq.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); hq.blur(); PL.$('#servicios', view).scrollIntoView({behavior: 'smooth'}); } };
+    hq.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); hq.blur(); } };
     const fv = PL.$('#favs', view);
     if (fv) fv.onclick = e => { const b = e.target.closest('[data-rehire]'); if (b) PL.rehire(PL.fav(b.dataset.rehire)); };
-    if (q) PL.$('#servicios', view).scrollIntoView();
   });
+
+  /* ——— todos los servicios, por sector ——— */
+  PL.route('servicios', view => {
+    view.innerHTML = `<section class="sector-h" data-c="hogar"><div class="wrap">
+        <a class="sector-back" href="#/">${PL.ic('back')}Inicio</a>
+        <div class="sector-t"><div><h1>Servicios</h1><p>Profesionales y oficios, por sector.</p></div></div>
+      </div></section>
+      <div class="modes sg" id="sects">${PL.CATS.map(PL.sectCard).join('')}</div>
+      <div class="wrap">
+        <a class="row-btn custom-row" href="#/pedir/otro">${PL.ic('plus')}<span><b>¿No está lo que buscas?</b><span>Haz un pedido personalizado: lo describes y te llegan ofertas</span></span>${PL.ic('chev', 'i chev')}</a>
+      </div>${PL.footer()}`;
+  }, {tab: ''});
+
+  /* ——— un sector: sus servicios en tarjetas, agrupados si el sector tiene grupos (Hogar: reparaciones y limpieza) ——— */
+  PL.route('sector', (view, args) => {
+    const c = PL.CATS.find(x => x.id === args[0]);
+    if (!c) { PL.go('#/servicios'); return; }
+    const list = PL.SVCS.filter(s => s.c === c.id && !s.other);
+    const groups = [...new Set(list.map(s => s.g).filter(Boolean))];
+    const others = PL.CATS.filter(x => x.id !== c.id);
+    view.innerHTML = `<section class="sector-h" data-c="${c.id}"><div class="wrap">
+        <a class="sector-back" href="#/servicios">${PL.ic('back')}Servicios</a>
+        <div class="sector-t">${PL.art(c.id, 'sh-art')}<div><h1>${PL.esc(c.name)}</h1><p>${PL.esc(c.d || '')}</p></div></div>
+      </div></section>
+      <div class="wrap" id="sv">
+        ${groups.length ? groups.map(g => `<div class="cat-block"><h3>${PL.esc(g)}</h3><div class="svc-list">${list.filter(s => s.g === g).map(PL.svcRow).join('')}</div></div>`).join('') : `<div class="cat-block"><div class="svc-list">${list.map(PL.svcRow).join('')}</div></div>`}
+        <a class="row-btn custom-row" href="#/pedir/otro">${PL.ic('plus')}<span><b>¿No está lo que buscas?</b><span>Haz un pedido personalizado: lo describes y te llegan ofertas</span></span>${PL.ic('chev', 'i chev')}</a>
+        <section class="sec"><div class="feat-h"><h2>Otros servicios</h2></div><div class="modes sg bleed">${others.map(PL.sectCard).join('')}</div></section>
+      </div>${PL.footer()}`;
+    PL.$('#sv', view).onclick = goSvc;
+  }, {tab: ''});
+
+  /* ——— emergencia: lo más común, directo a "lo antes posible" ——— */
+  const EMERG = [
+    ['gasfitero', 'Fuga de agua', 'Hay agua saliendo y no para'],
+    ['gasfitero', 'Destapar desagüe', 'Un desagüe o inodoro atorado'],
+    ['electricista', 'Se fue la luz', 'Sin luz en casa o un enchufe que chispea'],
+    ['cerrajero', 'Me quedé afuera', 'No puedes entrar a tu casa'],
+    ['todero', 'Arreglo pequeño', 'Algo se rompió y hay que arreglarlo hoy'],
+    ['veterinaria', 'Emergencia', 'Tu mascota está mal'],
+    ['enfermeria', 'Curaciones', 'Una curación o un inyectable hoy']
+  ];
+  PL.route('emergencia', view => {
+    view.innerHTML = `<section class="sector-h emerg-h"><div class="wrap">
+        <a class="sector-back" href="#/">${PL.ic('back')}Inicio</a>
+        <div class="sector-t">${PL.art('emergencia', 'sh-art')}<div><h1>¿Cuál es la emergencia?</h1><p>Elige y te mostramos quién puede ir hoy mismo, lo antes posible.</p></div></div>
+      </div></section>
+      <div class="wrap">
+        <p class="sos">${PL.ic('alert')}<span>Si hay riesgo para la vida, un incendio o un delito, llama primero: <a href="tel:116">Bomberos 116</a> · <a href="tel:106">SAMU 106</a> · <a href="tel:105">Policía 105</a></span></p>
+        <div class="svc-list" id="em">${EMERG.filter(([id]) => PL.svc(id)).map(([id, t, d]) => { const sv = PL.svc(id); return `<a class="svc-row" href="#/pedir/${id}?m=ya&t=${encodeURIComponent(t)}" data-c="${sv.c}"><span class="svc-ic">${PL.si(sv.i)}</span><span class="sr-t"><b>${PL.esc(t)}</b><span>${PL.esc(d)} · ${PL.esc(sv.n)}</span></span>${PL.ic('chev', 'i chev')}</a>`; }).join('')}
+          <a class="svc-row" href="#/pedir/otro?m=ya" data-c="ayuda"><span class="svc-ic">${PL.si('otr')}</span><span class="sr-t"><b>Otra emergencia</b><span>Cuéntanos qué pasa y te llegan ofertas</span></span>${PL.ic('chev', 'i chev')}</a></div>
+      </div>${PL.footer()}`;
+  }, {tab: ''});
 
   /* ——— mis pedidos ——— */
   PL.route('pedidos', (view, a, qs) => {

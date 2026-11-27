@@ -6,9 +6,17 @@ window.PL = window.PL || {};
 PL.CFG = {
   SHEETS_URL: '',             // URL de Apps Script (/exec) para guardar registros y pedidos en Google Sheets
   STORE: 'puente-laboral-v2', // clave de guardado en este dispositivo
-  /* ID de cliente OAuth 2.0 de Google (tipo "Aplicación web"), termina en .apps.googleusercontent.com.
-     Es público: va en el código. Mientras esté vacío, no aparece el botón de Google. */
-  GOOGLE_CLIENT_ID: ''
+  /* Firebase Authentication (proyecto agendalo-31b1a): Google, celular por SMS y correo con contraseña.
+     Esta configuración es pública por diseño (la protegen los dominios autorizados en Firebase).
+     Si se deja vacía, las cuentas se guardan solo en este dispositivo. */
+  FIREBASE: {
+    apiKey: 'AIzaSyCRp8RMk86IzyXKlh_zCBjlggi5jAqeWJU',
+    authDomain: 'agendalo-31b1a.firebaseapp.com',
+    projectId: 'agendalo-31b1a',
+    storageBucket: 'agendalo-31b1a.firebasestorage.app',
+    messagingSenderId: '1044513366635',
+    appId: '1:1044513366635:web:fa531af44b2b505bf1c72e'
+  }
 };
 
 /* trazo del símbolo (check escalonado), viewBox "15 25 90 70" */
@@ -20,53 +28,58 @@ PL.REPEAT_DAYS = {semana:7, quincena:14, mes:30};
 PL.UNITS = {trabajo:'por trabajo', hora:'por hora', dia:'por día', turno:'por turno', evento:'por evento', paseo:'por paseo', servicio:'por servicio', clase:'por clase', visita:'por visita'};
 
 PL.CATS = [
-  {id:'hogar',   name:'Reparaciones'},
-  {id:'ayuda',   name:'Ayuda y encargos'},
-  {id:'casa',    name:'Limpieza y casa'},
-  {id:'cuidado', name:'Cuidado'},
-  {id:'mudanza', name:'Mudanzas y transporte'},
-  {id:'belleza', name:'Belleza'},
-  {id:'eventos', name:'Eventos y fiestas'},
-  {id:'clases',  name:'Clases'},
-  {id:'negocio', name:'Para negocios'}
+  {id:'hogar',    name:'Hogar',                  i:'herr', d:'Arreglos, limpieza y todo para tu casa', ex:'Gasfitero · Electricista · Limpieza'},
+  {id:'belleza',  name:'Belleza y bienestar',    i:'esm',  d:'Uñas, maquillaje, masajes y más, en tu casa', ex:'Uñas · Maquillaje · Masajes'},
+  {id:'clases',   name:'Clases particulares',    i:'lib',  d:'Profesores particulares en tu casa u online', ex:'Matemática · Inglés · Box · Yoga'},
+  {id:'cuidado',  name:'Cuidado y salud',        i:'cor',  d:'Niñeras, adultos mayores, enfermería y terapia', ex:'Niñera · Adulto mayor · Terapia física'},
+  {id:'mascotas', name:'Mascotas',               i:'pata', d:'Veterinaria, paseos, baño y cuidado', ex:'Veterinaria · Paseos · Baño y corte'},
+  {id:'ayuda',    name:'Ayuda y encargos',       i:'carga',d:'Una mano para cargar, ordenar o hacer mandados', ex:'Maestro para todo · Cargar · Mandados'},
+  {id:'mudanza',  name:'Mudanzas y transporte',  i:'cmn',  d:'Mudanzas, choferes y repartos', ex:'Mudanzas · Chofer · Delivery'},
+  {id:'eventos',  name:'Eventos y fiestas',      i:'dj',   d:'Meseros, DJ, fotografía y más para tu evento', ex:'Meseros · DJ · Fotografía'},
+  {id:'negocio',  name:'Para negocios',          i:'reg',  d:'Personal por turnos para tu negocio', ex:'Impulsadoras · Cajeros · Almacén'}
 ];
 
 /* Sin precios: el precio lo pone cada cliente y cada trabajador. u = cómo se suele cobrar (por trabajo, por hora…).
    team:1 = se puede pedir más de una persona (turnos para eventos y negocios).
    now:0  = solo se pide programado (eventos, clases y trabajos que se planifican). */
 PL.SVCS = [
-  {id:'gasfitero', n:'Gasfitero', c:'hogar', i:'llv', u:'trabajo', t:['Fuga de agua','Destapar desagüe','Instalar grifo','Cambiar inodoro','Terma']},
-  {id:'electricista', n:'Electricista', c:'hogar', i:'bol', u:'trabajo', t:['Se fue la luz','Instalar tomacorriente','Instalar luminarias','Tablero eléctrico','Pozo a tierra']},
-  {id:'armado', n:'Armado de muebles', c:'hogar', i:'mue', u:'trabajo', t:['Ropero','Cama','Escritorio','Repostero','Colgar TV']},
-  {id:'carpintero', n:'Carpintero', c:'hogar', i:'mar', u:'trabajo', t:['Arreglar puerta','Mueble a medida','Bisagras y chapas','Closet']},
-  {id:'pintor', now:0, n:'Pintor', c:'hogar', i:'rod', u:'dia', t:['Un cuarto','Toda la casa','Fachada','Local u oficina']},
-  {id:'albanil', now:0, n:'Albañil', c:'hogar', i:'lad', u:'dia', t:['Tarrajeo','Mayólica','Pequeña remodelación','Pared o muro']},
-  {id:'cerrajero', n:'Cerrajero', c:'hogar', i:'lla', u:'trabajo', t:['Me quedé afuera','Cambiar chapa','Duplicar llaves','Chapa de seguridad']},
-  {id:'aire', n:'Técnico de aire y refrigeración', c:'hogar', i:'aire', u:'trabajo', t:['Mantenimiento','Instalación','Refrigeradora','Lavadora']},
-  {id:'camaras', n:'Instalador de cámaras', c:'hogar', i:'cam', u:'trabajo', t:['Instalar cámaras','Revisar sistema','Intercomunicador','Cerco eléctrico']},
-  {id:'tecnico', n:'Técnico de computadoras y celulares', c:'hogar', i:'lap', u:'trabajo', t:['Formatear','Pantalla rota','Wifi y redes','Impresora']},
+  {id:'gasfitero', n:'Gasfitero', c:'hogar', g:'Reparaciones', i:'llv', u:'trabajo', t:['Fuga de agua','Destapar desagüe','Instalar grifo','Cambiar inodoro','Terma']},
+  {id:'electricista', n:'Electricista', c:'hogar', g:'Reparaciones', i:'bol', u:'trabajo', t:['Se fue la luz','Instalar tomacorriente','Instalar luminarias','Tablero eléctrico','Pozo a tierra']},
+  {id:'armado', n:'Armado de muebles', c:'hogar', g:'Reparaciones', i:'mue', u:'trabajo', t:['Ropero','Cama','Escritorio','Repostero','Colgar TV']},
+  {id:'carpintero', n:'Carpintero', c:'hogar', g:'Reparaciones', i:'mar', u:'trabajo', t:['Arreglar puerta','Mueble a medida','Bisagras y chapas','Closet']},
+  {id:'pintor', now:0, n:'Pintor', c:'hogar', g:'Reparaciones', i:'rod', u:'dia', t:['Un cuarto','Toda la casa','Fachada','Local u oficina']},
+  {id:'albanil', now:0, n:'Albañil', c:'hogar', g:'Reparaciones', i:'lad', u:'dia', t:['Tarrajeo','Mayólica','Pequeña remodelación','Pared o muro']},
+  {id:'cerrajero', n:'Cerrajero', c:'hogar', g:'Reparaciones', i:'lla', u:'trabajo', t:['Me quedé afuera','Cambiar chapa','Duplicar llaves','Chapa de seguridad']},
+  {id:'aire', n:'Técnico de aire y refrigeración', c:'hogar', g:'Reparaciones', i:'aire', u:'trabajo', t:['Mantenimiento','Instalación','Refrigeradora','Lavadora']},
+  {id:'camaras', n:'Instalador de cámaras', c:'hogar', g:'Reparaciones', i:'cam', u:'trabajo', t:['Instalar cámaras','Revisar sistema','Intercomunicador','Cerco eléctrico']},
+  {id:'tecnico', n:'Técnico de computadoras y celulares', c:'hogar', g:'Reparaciones', i:'lap', u:'trabajo', t:['Formatear','Pantalla rota','Wifi y redes','Impresora']},
 
-  {id:'limpieza', n:'Limpieza del hogar', c:'casa', i:'limp', u:'dia', team:1, t:['Limpieza general','Limpieza profunda','Después de una obra','Mudanza']},
-  {id:'lavado', n:'Lavado y planchado', c:'casa', i:'lav', u:'servicio', t:['Lavado de ropa','Planchado','Cortinas','Muebles y alfombras']},
-  {id:'jardinero', n:'Jardinero', c:'casa', i:'jar', u:'trabajo', t:['Cortar césped','Podar','Sembrar','Mantenimiento mensual']},
-  {id:'cocinera', n:'Cocinera a domicilio', c:'casa', i:'coc', u:'dia', t:['Menú de la semana','Almuerzo familiar','Cena especial','Loncheras']},
+  {id:'limpieza', n:'Limpieza del hogar', c:'hogar', g:'Limpieza y casa', i:'limp', u:'dia', team:1, t:['Limpieza general','Limpieza profunda','Después de una obra','Mudanza']},
+  {id:'lavado', n:'Lavado y planchado', c:'hogar', g:'Limpieza y casa', i:'lav', u:'servicio', t:['Lavado de ropa','Planchado','Cortinas','Muebles y alfombras']},
+  {id:'jardinero', n:'Jardinero', c:'hogar', g:'Limpieza y casa', i:'jar', u:'trabajo', t:['Cortar césped','Podar','Sembrar','Mantenimiento mensual']},
+  {id:'cocinera', n:'Cocinera a domicilio', c:'hogar', g:'Limpieza y casa', i:'coc', u:'dia', t:['Menú de la semana','Almuerzo familiar','Cena especial','Loncheras']},
 
   {id:'ninera', n:'Niñera', c:'cuidado', i:'bebe', u:'hora', t:['Cuidar por horas','Recoger del colegio','Noche','Tareas escolares']},
   {id:'adulto', n:'Cuidado de adulto mayor', c:'cuidado', i:'cor', u:'dia', t:['Acompañamiento','Medicinas','Aseo personal','Noche']},
   {id:'enfermeria', n:'Enfermería a domicilio', c:'cuidado', i:'cruz', u:'visita', t:['Inyectables','Curaciones','Control de presión','Sonda']},
-  {id:'veterinaria', n:'Veterinaria a domicilio', c:'cuidado', i:'pata', u:'visita', t:['Consulta','Vacunas','Desparasitación','Emergencia']},
-  {id:'paseador', n:'Paseador de perros', c:'cuidado', i:'pata', u:'paseo', t:['Paseo de 30 min','Paseo de 1 hora','Paseo diario']},
-  {id:'mascotas', n:'Cuidador de mascotas', c:'cuidado', i:'pata', u:'dia', t:['Mientras viajo','Visitas diarias','Dar comida y medicinas']},
-  {id:'grooming', n:'Baño y corte de mascotas', c:'cuidado', i:'pata', u:'servicio', t:['Baño','Corte','Corte de uñas']},
+  {id:'fisio', n:'Terapia física a domicilio', c:'cuidado', i:'pes', u:'visita', t:['Rehabilitación','Dolor de espalda','Adulto mayor','Después de una operación']},
+  {id:'veterinaria', n:'Veterinaria a domicilio', c:'mascotas', i:'pata', u:'visita', t:['Consulta','Vacunas','Desparasitación','Emergencia']},
+  {id:'paseador', n:'Paseador de perros', c:'mascotas', i:'pata', u:'paseo', t:['Paseo de 30 min','Paseo de 1 hora','Paseo diario']},
+  {id:'mascotas', n:'Cuidador de mascotas', c:'mascotas', i:'pata', u:'dia', t:['Mientras viajo','Visitas diarias','Dar comida y medicinas']},
+  {id:'grooming', n:'Baño y corte de mascotas', c:'mascotas', i:'pata', u:'servicio', t:['Baño','Corte','Corte de uñas']},
 
   {id:'mudanza', n:'Mudanzas y cargadores', c:'mudanza', i:'cmn', u:'trabajo', team:1, t:['Mudanza completa','Pocas cosas','Subir o bajar pisos','Con camión']},
   {id:'chofer', n:'Chofer', c:'mudanza', i:'cho', u:'dia', t:['Con mi auto','Viaje fuera de la ciudad','Evento','Empresa']},
   {id:'motorizado', n:'Motorizado y delivery', c:'mudanza', i:'mot', u:'hora', team:1, t:['Repartos de mi negocio','Un envío','Trámites']},
 
-  {id:'peluqueria', n:'Peluquería a domicilio', c:'belleza', i:'pel', u:'servicio', t:['Corte','Tinte','Peinado','Alisado']},
-  {id:'barbero', n:'Barbero a domicilio', c:'belleza', i:'pei', u:'servicio', t:['Corte','Barba','Corte y barba']},
-  {id:'manicure', n:'Manicure y pedicure', c:'belleza', i:'esm', u:'servicio', t:['Manicure','Pedicure','Uñas acrílicas','Gel']},
-  {id:'maquillaje', n:'Maquillaje y estilismo', c:'belleza', i:'mak', u:'servicio', t:['Social','Novia','Sesión de fotos','Quinceañero']},
+  {id:'peluqueria', n:'Peluquería a domicilio', c:'belleza', g:'Belleza', i:'pel', u:'servicio', t:['Corte','Tinte','Peinado','Alisado']},
+  {id:'barbero', n:'Barbero a domicilio', c:'belleza', g:'Belleza', i:'pei', u:'servicio', t:['Corte','Barba','Corte y barba']},
+  {id:'manicure', n:'Uñas: manicure y pedicure', c:'belleza', g:'Belleza', i:'esm', u:'servicio', t:['Manicure','Pedicure','Uñas acrílicas','Gel']},
+  {id:'maquillaje', n:'Maquillaje y estilismo', c:'belleza', g:'Belleza', i:'mak', u:'servicio', t:['Social','Novia','Sesión de fotos','Quinceañero']},
+  {id:'cejas', n:'Cejas y pestañas', c:'belleza', g:'Belleza', i:'ojo', u:'servicio', t:['Diseño de cejas','Laminado de cejas','Lifting de pestañas','Extensiones']},
+  {id:'depilacion', n:'Depilación', c:'belleza', g:'Belleza', i:'cera', u:'servicio', t:['Con cera','Con hilo','Piernas','Rostro','Axilas']},
+  {id:'masajes', n:'Masajes a domicilio', c:'belleza', g:'Bienestar', i:'masa', u:'servicio', t:['Relajante','Descontracturante','Piedras calientes','Para dos']},
+  {id:'facial', n:'Limpieza facial', c:'belleza', g:'Bienestar', i:'cara', u:'servicio', t:['Limpieza profunda','Hidratación','Antiacné']},
 
   {id:'mesero', n:'Meseros', c:'eventos', i:'mes', u:'turno', team:1, t:['Matrimonio','Cumpleaños','Evento de empresa','Restaurante']},
   {id:'barman', n:'Barman', c:'eventos', i:'bar', u:'turno', team:1, t:['Barra libre','Cócteles de autor','Bar o discoteca']},
@@ -80,11 +93,30 @@ PL.SVCS = [
   {id:'musicos', now:0, n:'Músicos en vivo', c:'eventos', i:'mus', u:'evento', t:['Serenata','Criollo','Grupo de cumbia','Violín para boda']},
   {id:'montaje', now:0, n:'Montaje y desmontaje', c:'eventos', i:'caja', u:'turno', team:1, t:['Toldos y carpas','Escenario','Stand de feria','Mobiliario']},
 
-  {id:'profesor', n:'Profesor particular', c:'clases', i:'lib', u:'hora', t:['Matemática','Comunicación','Ciencias','Preuniversitario']},
-  {id:'idiomas', now:0, n:'Clases de idiomas', c:'clases', i:'glo', u:'clase', t:['Inglés','Portugués','Francés','Conversación']},
-  {id:'musica', now:0, n:'Clases de música o baile', c:'clases', i:'mus', u:'clase', t:['Guitarra','Piano','Canto','Baile']},
-  {id:'entrenador', now:0, n:'Entrenador personal', c:'clases', i:'pes', u:'clase', t:['Bajar de peso','Fuerza','En el parque','Para adultos mayores']},
 
+  /* clases particulares: en tu casa u online (se elige al pedir) */
+  {id:'profesor', n:'Refuerzo escolar', c:'clases', g:'Colegio y universidad', i:'lib', u:'clase', t:['Tareas','Todas las materias','Primaria','Secundaria']},
+  {id:'matematica', n:'Matemática', c:'clases', g:'Colegio y universidad', i:'lib', u:'clase', t:['Primaria','Secundaria','Preuniversitario','Universidad']},
+  {id:'fisica', n:'Física y química', c:'clases', g:'Colegio y universidad', i:'lib', u:'clase', t:['Física','Química','Secundaria','Universidad']},
+  {id:'literatura', n:'Comunicación y literatura', c:'clases', g:'Colegio y universidad', i:'lib', u:'clase', t:['Comprensión lectora','Redacción','Literatura','Ortografía']},
+  {id:'preu', n:'Preuniversitario', c:'clases', g:'Colegio y universidad', i:'lib', u:'clase', t:['Examen de admisión','Razonamiento matemático','Razonamiento verbal','Simulacros']},
+  {id:'universidad', n:'Cursos universitarios', c:'clases', g:'Colegio y universidad', i:'lib', u:'clase', t:['Cálculo','Estadística','Contabilidad','Economía']},
+  {id:'ingles', n:'Inglés', c:'clases', g:'Idiomas', i:'glo', u:'clase', t:['Conversación','Para el colegio','Para el trabajo','Exámenes internacionales']},
+  {id:'idiomas', now:0, n:'Otros idiomas', c:'clases', g:'Idiomas', i:'glo', u:'clase', t:['Portugués','Francés','Italiano','Alemán','Chino']},
+  {id:'musica', now:0, n:'Música', c:'clases', g:'Música y arte', i:'mus', u:'clase', t:['Guitarra','Piano','Canto','Batería','Violín']},
+  {id:'baile', now:0, n:'Baile', c:'clases', g:'Música y arte', i:'mus', u:'clase', t:['Salsa','Marinera','Bachata','Urbano']},
+  {id:'dibujo', now:0, n:'Dibujo y pintura', c:'clases', g:'Música y arte', i:'lib', u:'clase', t:['Para niños','Acuarela','Óleo','Ilustración']},
+  {id:'box', now:0, n:'Box', c:'clases', g:'Deporte y bienestar', i:'pes', u:'clase', t:['Técnica básica','Cardio box','Para niños','Preparación física']},
+  {id:'yoga', now:0, n:'Yoga y pilates', c:'clases', g:'Deporte y bienestar', i:'yoga', u:'clase', t:['Yoga','Pilates en colchoneta','Estiramiento','Para dos']},
+  {id:'entrenador', now:0, n:'Entrenador personal', c:'clases', g:'Deporte y bienestar', i:'pes', u:'clase', t:['Bajar de peso','Fuerza','En el parque','Para adultos mayores']},
+  {id:'natacion', now:0, n:'Natación', c:'clases', g:'Deporte y bienestar', i:'pes', u:'clase', t:['Para niños','Adultos','Perder el miedo al agua','Técnica']},
+  {id:'artes', now:0, n:'Artes marciales', c:'clases', g:'Deporte y bienestar', i:'pes', u:'clase', t:['Karate','Jiu-jitsu','Taekwondo','Defensa personal']},
+  {id:'tenis', now:0, n:'Tenis', c:'clases', g:'Deporte y bienestar', i:'pes', u:'clase', t:['Desde cero','Técnica','Para niños']},
+  {id:'futbol', now:0, n:'Fútbol', c:'clases', g:'Deporte y bienestar', i:'pes', u:'clase', t:['Para niños','Técnica','Arquero']},
+  {id:'computacion', n:'Computación y Excel', c:'clases', g:'Tecnología y otros', i:'lap', u:'clase', t:['Computación básica','Excel','Word y PowerPoint','Para adultos mayores']},
+  {id:'programacion', now:0, n:'Programación', c:'clases', g:'Tecnología y otros', i:'lap', u:'clase', t:['Python','Páginas web','Para niños','Apps']},
+  {id:'manejo', now:0, n:'Clases de manejo', c:'clases', g:'Tecnología y otros', i:'cho', u:'clase', t:['Primera vez','Para el examen de brevete','Auto mecánico','Auto automático']},
+  {id:'cocinaclase', now:0, n:'Clases de cocina', c:'clases', g:'Tecnología y otros', i:'coc', u:'clase', t:['Cocina peruana','Repostería','Saludable']},
   {id:'impulsadora', n:'Impulsadoras y promotores', c:'negocio', i:'meg', u:'turno', team:1, t:['Supermercado','Degustación','Volanteo','Feria']},
   {id:'almacen', n:'Personal de almacén', c:'negocio', i:'caja', u:'turno', team:1, t:['Carga y descarga','Inventario','Despacho','Campaña']},
   {id:'cajero', n:'Cajeros', c:'negocio', i:'reg', u:'turno', team:1, t:['Tienda','Restaurante','Campaña de temporada']},
@@ -98,7 +130,7 @@ PL.SVCS = [
   {id:'desmonte', n:'Recojo de desmonte y cachivaches', c:'ayuda', i:'desm', u:'trabajo', t:['Desmonte de obra','Muebles viejos','Cachivaches','Ramas y hojas']},
   {id:'mandados', n:'Mandados y colas', c:'ayuda', i:'mand', u:'hora', t:['Hacer una cola','Recoger un paquete','Pagar recibos','Hacer compras']},
   {id:'mano', n:'Una mano por horas', c:'ayuda', i:'hora', u:'hora', team:1, t:['Ayuda en casa','Ayuda en un evento','Ayuda en tu negocio','Lo que necesites']},
-  {id:'otro', n:'Otro trabajo', c:'hogar', i:'otr', u:'trabajo', t:[], other:1}
+  {id:'otro', n:'Pedido personalizado', c:'hogar', i:'otr', u:'trabajo', t:[], other:1}
 ];
 
 /* Zona de servicio: Lima central y moderna, y las playas donde más se contrata (Ancón, La Punta y el sur hasta San Bartolo).
@@ -116,6 +148,11 @@ PL.DEMO = {
 
 /* Íconos de oficios (48×48, trazo) */
 PL.SI = {
+  ojo:'<path d="M5 27s7-11 19-11 19 11 19 11-7 11-19 11S5 27 5 27z"/><circle cx="24" cy="27" r="5"/><path d="M13 15l-2-4M24 12V8M35 15l2-4"/>',
+  cera:'<path d="M24 6s-12 13-12 22a12 12 0 0 0 24 0C36 19 24 6 24 6z"/><path d="M18 30a6 6 0 0 0 6 6"/>',
+  masa:'<ellipse cx="24" cy="37" rx="15" ry="5"/><ellipse cx="24" cy="27" rx="10.5" ry="4.5"/><ellipse cx="24" cy="18.5" rx="6.5" ry="3.5"/><path d="M26 13c1-4 4-6 9-6-1 4-4 6-9 6z"/>',
+  cara:'<circle cx="24" cy="24" r="16"/><path d="M18 21h.01M30 21h.01M18 30c3.5 3 8.5 3 12 0"/>',
+  yoga:'<circle cx="24" cy="10" r="4"/><path d="M24 15v12M12 21l12 6 12-6M14 37l10-7 10 7M9 38h30"/>',
   herr:'<rect x="6" y="18" width="36" height="22" rx="3"/><path d="M18 18v-6h12v6M6 28h36M21 28v4h6v-4"/>',
   carga:'<path d="M7 8h5l7 26h21"/><circle cx="21" cy="39" r="3.5"/><rect x="19" y="13" width="18" height="15" rx="2"/><path d="M26 13v5h4v-5"/>',
   desm:'<path d="M9 14h30M18 14V9h12v5M13 14l2 26h18l2-26"/><path d="M21 20v14M27 20v14"/>',

@@ -14,7 +14,7 @@
   PL.route('pedido', (view, args) => {
     const o = PL.order(args[0]);
     if (!o) { PL.go('#/pedidos'); return; }
-    ({buscando: o.direct ? direct : seek, programado: track, en_camino: track, llego: track, trabajando: track, pagar: pay, calificar: rate, terminado: receipt, cancelado: receipt})[o.status](view, o);
+    ({buscando: o.direct ? direct : seek, programado: track, en_camino: track, llego: track, trabajando: track, pagar: rate, calificar: rate, terminado: receipt, cancelado: receipt})[o.status](view, o);
   }, {flow: true, tab: 'pedidos'});
 
   async function cancel(o){
@@ -46,7 +46,7 @@
       map.fit(null, {max: 15.5});
       const el = document.createElement('article');
       el.className = 'offer rise' + (spawned === 1 ? ' best' : ''); el.dataset.id = id;
-      el.innerHTML = `<div class="of-top">${PL.avatar(w.name, w.color)}<div class="of-who"><b>${PL.esc(PL.short(w.name))}${team ? ' y equipo' : ''}</b><div class="meta"><span>${prog ? 'Disponible ' + PL.esc(PL.dayName(o.when.date).toLowerCase()) : 'Llega en ' + w.eta + ' min'} · a ${String(w.km.toFixed(1)).replace('.', ',')} km</span><button class="prof-link" type="button" data-prof>Ver perfil</button></div></div><div class="of-pr"><b>${PL.money(price)}</b><span class="same">Acepta tu precio</span></div></div>
+      el.innerHTML = `<div class="of-top">${PL.avatar(w.name, w.color)}<div class="of-who"><b>${PL.esc(PL.short(w.name))}${team ? ' y equipo' : ''}</b><div class="meta"><span>${prog ? (o.when.type === 'flex' ? 'Coordina el día contigo' : 'Disponible ' + PL.esc(PL.dayName(o.when.date).toLowerCase())) : 'Llega en ' + w.eta + ' min'} · a ${String(w.km.toFixed(1)).replace('.', ',')} km</span><button class="prof-link" type="button" data-prof>Ver perfil</button></div></div><div class="of-pr"><b>${PL.money(price)}</b><span class="same">Acepta tu precio</span></div></div>
         <div class="of-badges"><span class="pill v">${PL.ic('check')}DNI verificado</span>${prog && o.repeat !== 'no' ? `<span class="pill o">Puede ${PL.esc(PL.REPEAT[o.repeat].toLowerCase())}</span>` : ''}${team ? `<span class="pill o">${PL.ic('users')}Equipo de ${o.people}</span>` : ''}</div>
         <div class="of-acts"><button class="ibtn" type="button" data-no aria-label="Rechazar">${PL.ic('x')}</button><button class="btn btn-l btn-sm" type="button" data-chat>${PL.ic('chat')}Escribir</button><button class="btn btn-t btn-sm" type="button" data-ok>Aceptar ${PL.money(price)}</button></div>
         ${prog ? '' : '<i class="of-bar" aria-hidden="true"><i style="animation-duration:30s"></i></i>'}`;
@@ -119,20 +119,20 @@
     if (s === 'en_camino' || s === 'programado') map.fit(['w'], {max: 16}); else map.setMe(map.me, {zoom: 16.5});
     const idx = {programado: 0, en_camino: 1, llego: 2, trabajando: 3}[s];
     const head = {
-      programado: `<h2>${PL.esc(wName(o))} va a ir</h2><div class="eta"><b>${(() => { const d = Math.round((new Date(o.when.date + 'T00:00') - new Date(PL.isoDay(new Date()) + 'T00:00')) / 864e5); return d <= 0 ? 'Hoy' : d === 1 ? 'Mañana' : 'En ' + d + ' días'; })()}</b><span>${PL.esc(PL.fhm(o.when.time))}</span></div>`,
+      programado: o.when.type === 'flex' ? `<h2>${PL.esc(wName(o))} ${o.online ? 'te dará la clase online' : 'va a ir'}</h2><div class="eta"><b>Por coordinar</b><span>acuerden el día por chat</span></div>` : `<h2>${PL.esc(wName(o))} ${o.online ? 'te dará la clase online' : 'va a ir'}</h2><div class="eta"><b>${(() => { const d = Math.round((new Date(o.when.date + 'T00:00') - new Date(PL.isoDay(new Date()) + 'T00:00')) / 864e5); return d <= 0 ? 'Hoy' : d === 1 ? 'Mañana' : 'En ' + d + ' días'; })()}</b><span>${PL.esc(PL.fhm(o.when.time))}</span></div>`,
       en_camino: `<h2>${PL.esc(wName(o))} viene a tu dirección</h2><div class="eta"><b id="eta">${o.eta} min</b><span>llegada aprox.</span></div>`,
       llego: `<h2>Dale tu código para empezar</h2>`,
       trabajando: `<h2>Empezó a las ${PL.ftime(o.stageAt)}</h2>`
     }[s];
     fb.innerHTML = `<div class="trk-h">${head}</div>
-      ${s === 'programado' ? `<div class="when-sum">${PL.ic('cal')}<span><b>${PL.esc(PL.whenText(o.when))}</b>${o.repeat && o.repeat !== 'no' ? ' · ' + PL.REPEAT[o.repeat].toLowerCase() : ''}<br><span class="muted">Te recordamos un día antes.</span></span></div>` : ''}
+      ${s === 'programado' ? `<div class="when-sum">${PL.ic('cal')}<span><b>${PL.esc(PL.whenText(o.when))}</b>${o.repeat && o.repeat !== 'no' ? ' · ' + PL.REPEAT[o.repeat].toLowerCase() : ''}<br><span class="muted">${o.when.type === 'flex' ? 'Cuando acuerden el día, fíjalo aquí.' : 'Te recordamos un día antes.'}</span></span></div>` : ''}
       <ol class="trk-steps">${['Aceptado', 'En camino', 'Llegó', 'Trabajando'].map((t, i) => `<li class="${i < idx ? 'done' : i === idx ? 'now' : ''}">${t}</li>`).join('')}</ol>
       <div class="wk">${PL.avatar(w.name, w.color)}<div class="wk-i"><b>${PL.esc(PL.short(w.name))}${o.people > 1 ? ` <span class="pill o">+${o.people - 1}</span>` : ''}</b><div class="meta"><span>${PL.esc(svc.n)}${o.biz ? ' · de ' + PL.esc(o.biz.name) : ''}</span><span class="pill v">${PL.ic('check')}Verificado</span></div></div>
         <div class="wk-acts"><button class="ibtn" type="button" id="chat" aria-label="Escribirle">${PL.ic('chat')}</button><button class="ibtn" type="button" id="call" aria-label="Llamarle">${PL.ic('phone')}</button></div></div>
       ${s !== 'trabajando' ? `<div class="pin"><p><b>Tu código de inicio</b>${s === 'llego' ? 'Díselo ahora: así confirma que es la persona correcta.' : 'Díselo solo cuando llegue a tu puerta.'}</p><div class="code" aria-label="Código ${o.pin.split('').join(' ')}">${o.pin.split('').map(d => `<span>${d}</span>`).join('')}</div></div>` : ''}
-      <div class="sum"><dl class="dl"><dt>Precio</dt><dd>${PL.money(PL.total(o))}</dd><dt>Pago</dt><dd style="text-transform:capitalize">${PL.esc(o.pay)}</dd>${o.tasks.length ? `<dt>Trabajo</dt><dd>${PL.esc(o.tasks.join(', '))}</dd>` : ''}</dl></div>
+      <div class="sum"><dl class="dl"><dt>Precio</dt><dd>${PL.money(PL.total(o))}</dd><dt>Pago</dt><dd>${PL.esc(PL.payText(o))}</dd>${o.tasks.length ? `<dt>Trabajo</dt><dd>${PL.esc(o.tasks.join(', '))}</dd>` : ''}</dl></div>
       <div class="trk-acts"><button class="btn btn-l btn-sm" type="button" id="share">${PL.ic('share')}Compartir</button><button class="btn btn-r btn-sm" type="button" id="help">${PL.ic('alert')}Ayuda</button></div>
-      ${s === 'programado' ? `<button class="btn btn-l btn-sm btn-full" type="button" id="resch" style="margin-top:8px">${PL.ic('cal')}Cambiar día u hora</button>` : ''}
+      ${s === 'programado' ? `<button class="btn btn-l btn-sm btn-full" type="button" id="resch" style="margin-top:8px">${PL.ic('cal')}${o.when.type === 'flex' ? 'Fijar día y hora' : 'Cambiar día u hora'}</button>` : ''}
       ${s === 'programado' || s === 'en_camino' ? `<button class="btn btn-g btn-sm btn-full" type="button" id="cx" style="margin-top:8px">Cancelar pedido</button>` : ''}
       <div class="demo-skip"><button type="button" id="skip">${s === 'programado' ? 'Pasar al día del servicio' : 'Avanzar'} ›</button></div>`;
     PL.$('#chat', fb).onclick = () => PL.chat(o);
@@ -142,11 +142,11 @@
     PL.$('#help', fb).onclick = () => help(o);
     const cx = PL.$('#cx', fb); if (cx) cx.onclick = () => cancel(o);
     const rs = PL.$('#resch', fb); if (rs) rs.onclick = () => resched(o);
-    const NEXT = {programado: 'en_camino', en_camino: 'llego', llego: 'trabajando', trabajando: 'pagar'};
+    const NEXT = {programado: 'en_camino', en_camino: 'llego', llego: 'trabajando', trabajando: 'calificar'};
     PL.$('#skip', fb).onclick = () => advance(NEXT[s]);
     function advance(n){
       if (n === 'trabajando') PL.toast('Código correcto. ¡Empezó el trabajo!');
-      if (n === 'pagar') PL.toast(`${PL.short(w.name)} terminó el trabajo`);
+      if (n === 'calificar') { o.doneAt = Date.now(); PL.toast(`${PL.short(w.name)} terminó el trabajo`); }
       if (n === 'llego') PL.toast(`${PL.short(w.name)} llegó a tu dirección`);
       set(o, n);
     }
@@ -317,33 +317,6 @@
       }});
   };
 
-  /* ——— 3. pago directo ——— */
-  function pay(view, o){
-    const w = o.worker, base = PL.total(o);
-    const {map, fb, ff} = shell(view, o, 's', `Paga a <span class="k">${PL.esc(PL.short(w.name))}</span>`);
-    map.addPin('w', w, PL.ll(o.wpos) || undefined); map.move('w', 1);
-    let tip = 0, m = o.pay;
-    const tips = base >= 200 ? [0, 10, 20, 30] : [0, 2, 5, 10];
-    fb.innerHTML = `<div class="pay-tot"><b id="pt"></b><span>${PL.esc(PL.svc(o.svc).n)} · trabajo terminado</span></div>
-      <p class="blk-t">Propina <small>opcional, va completa para ${PL.esc(w.name.split(' ')[0])}</small></p>
-      <div class="chips" id="tips">${tips.map(t => `<button class="chip" type="button" data-t="${t}" aria-pressed="${t === 0}">${t ? '+ S/ ' + t : 'Sin propina'}</button>`).join('')}</div>
-      <p class="blk-t">Método</p>
-      <div class="methods" id="pm">${[['efectivo', 'Efectivo', '#D6F4E3', PL.ic('cash')], ['yape', 'Yape', '#D4CBFF', 'Y'], ['plin', 'Plin', '#B4EEE1', 'P']].map(x => `<button class="method" type="button" data-m="${x[0]}" aria-pressed="${m === x[0]}"><span class="mi" style="background:${x[2]}">${x[3]}</span>${x[1]}</button>`).join('')}</div>
-      <div class="yape" id="how"></div>`;
-    ff.hidden = false; ff.innerHTML = `<button class="btn btn-a" type="button" id="paid"></button>`;
-    function draw(){
-      const t = base + tip;
-      PL.$('#pt', fb).textContent = PL.money(t);
-      PL.$('#paid', ff).textContent = `Ya pagué ${PL.money(t)}`;
-      PL.$('#how', fb).innerHTML = m === 'efectivo' ? `<span class="mi" style="background:#D6F4E3">${PL.ic('cash')}</span><div><b>Entrégale ${PL.money(t)} en efectivo</b><br><span class="muted">Pide que te dé vuelto si hace falta.</span></div>` :
-        `<span class="mi" style="background:${m === 'yape' ? '#D4CBFF' : '#B4EEE1'}">${m === 'yape' ? 'Y' : 'P'}</span><div><b>${m === 'yape' ? 'Yapea' : 'Plinea'} ${PL.money(t)} a ${PL.esc(w.name)}</b><br><span class="muted">Te pasa su número al terminar.</span></div>`;
-    }
-    PL.$('#tips', fb).onclick = e => { const b = e.target.closest('[data-t]'); if (!b) return; tip = Number(b.dataset.t); PL.$$('[data-t]', fb).forEach(x => x.setAttribute('aria-pressed', x === b)); draw(); };
-    PL.$('#pm', fb).onclick = e => { const b = e.target.closest('[data-m]'); if (!b) return; m = b.dataset.m; PL.$$('[data-m]', fb).forEach(x => x.setAttribute('aria-pressed', x === b)); draw(); };
-    PL.$('#paid', ff).onclick = () => { o.tip = tip; o.pay = m; o.paidAt = Date.now(); set(o, 'calificar'); };
-    draw();
-  }
-
   /* ——— 4. calificación ——— */
   function rate(view, o){
     const w = o.worker;
@@ -351,7 +324,7 @@
     map.addPin('w', w, PL.ll(o.wpos) || undefined); map.move('w', 1);
     let stars = 0, tags = [];
     const GOOD = ['Puntual', 'Buen trabajo', 'Amable', 'Dejó todo limpio', 'Buen precio'], BAD = ['Llegó tarde', 'Trabajo incompleto', 'Mal trato', 'Cobró de más', 'Dejó desorden'];
-    fb.innerHTML = `<div style="text-align:center">${PL.avatar(w.name, w.color, 'l').replace('class="av l"', 'class="av l" style="margin:0 auto 10px;background:' + w.color + '"')}<b style="font:800 1.3rem var(--f-t)">${PL.esc(w.name)}</b><p class="muted">${PL.esc(PL.svc(o.svc).n)} · ${PL.esc(PL.fdate(o.paidAt || Date.now()))}</p></div>
+    fb.innerHTML = `<div style="text-align:center">${PL.avatar(w.name, w.color, 'l').replace('class="av l"', 'class="av l" style="margin:0 auto 10px;background:' + w.color + '"')}<b style="font:800 1.3rem var(--f-t)">${PL.esc(w.name)}</b><p class="muted">${PL.esc(PL.svc(o.svc).n)} · ${PL.esc(PL.fdate(o.doneAt || o.paidAt || Date.now()))}</p></div>
       <div class="rate" id="rs" role="group" aria-label="Calificación">${[1, 2, 3, 4, 5].map(n => `<button type="button" data-s="${n}" aria-pressed="false" aria-label="${n} de 5"><svg viewBox="0 0 24 24" aria-hidden="true">${PL.UI.star}</svg></button>`).join('')}</div>
       <div class="chips" id="tg" style="justify-content:center"></div>
       <label class="field" style="margin-top:16px"><span>Comentario <em>(opcional)</em></span><textarea class="in" id="cm" maxlength="300" placeholder="Cuéntale a otros cómo fue"></textarea></label>
@@ -392,7 +365,7 @@
     const {map, fb} = shell(view, o, 's', done ? 'Pedido <span class="k">terminado</span>' : 'Pedido <span class="k">cancelado</span>');
     if (o.worker) { map.addPin('w', o.worker, PL.ll(o.wpos) || undefined); if (done) map.move('w', 1); }
     fb.innerHTML = `${done ? `<div class="done-ic">${PL.ic('check')}</div>` : ''}
-      <div class="sum" style="margin-top:0"><dl class="dl"><dt>Servicio</dt><dd>${PL.esc(svc.n)}</dd>${o.tasks.length ? `<dt>Trabajo</dt><dd>${PL.esc(o.tasks.join(', '))}</dd>` : ''}${o.worker ? `<dt>Trabajador</dt><dd>${PL.esc(o.worker.name)}${o.people > 1 ? ` y equipo (${o.people})` : ''}</dd>` : ''}<dt>Cuándo</dt><dd>${PL.esc(PL.whenText(o.when))}</dd><dt>Dónde</dt><dd>${PL.esc(o.district)}</dd><dt>Precio</dt><dd>${PL.money(PL.total(o))}</dd>${o.tip ? `<dt>Propina</dt><dd>${PL.money(o.tip)}</dd>` : ''}${done ? `<dt>Total</dt><dd>${PL.money(PL.total(o) + (o.tip || 0))}</dd><dt>Pago</dt><dd style="text-transform:capitalize">${PL.esc(o.pay)}</dd>` : ''}${o.rating ? `<dt>Tu nota</dt><dd>${PL.starsH(o.rating)}</dd>` : ''}</dl></div>
+      <div class="sum" style="margin-top:0"><dl class="dl"><dt>Servicio</dt><dd>${PL.esc(svc.n)}</dd>${o.tasks.length ? `<dt>Trabajo</dt><dd>${PL.esc(o.tasks.join(', '))}</dd>` : ''}${o.worker ? `<dt>Trabajador</dt><dd>${PL.esc(o.worker.name)}${o.people > 1 ? ` y equipo (${o.people})` : ''}</dd>` : ''}<dt>Cuándo</dt><dd>${PL.esc(PL.whenText(o.when))}</dd><dt>Dónde</dt><dd>${PL.esc(o.district)}</dd><dt>Precio</dt><dd>${PL.money(PL.total(o))}</dd>${done ? `<dt>Pago</dt><dd>${PL.esc(PL.payText(o))}</dd>` : ''}${o.rating ? `<dt>Tu nota</dt><dd>${PL.starsH(o.rating)}</dd>` : ''}</dl></div>
       ${o.nextId && PL.order(o.nextId) ? `<a class="when-sum" href="#/pedido/${o.nextId}" style="text-decoration:none;margin-top:12px">${PL.ic('cal')}<span><b>Próxima vez: ${PL.esc(PL.whenText(PL.order(o.nextId).when))}</b><br><span class="muted">${PL.REPEAT[o.repeat]} con ${PL.esc(PL.short(o.worker.name))}</span></span></a>` : ''}
       <div style="display:grid;gap:8px;margin-top:16px">
       ${done && o.worker ? `<button class="btn btn-a" type="button" id="rh">${PL.ic('heart')}Volver a contratar a ${PL.esc(PL.short(o.worker.name))}</button><button class="btn btn-l" type="button" id="favT">${PL.fav(o.worker.name) ? PL.ic('check') + 'En Mis trabajadores' : PL.ic('plus') + 'Guardar en Mis trabajadores'}</button><a class="btn btn-l" href="#/pedir/${svc.id}?re=${o.id}">Pedir a otra persona</a>` : `<a class="btn btn-a" href="#/pedir/${svc.id}?re=${o.id}">Volver a pedir<span class="arr">${PL.ic('arrow')}</span></a>`}

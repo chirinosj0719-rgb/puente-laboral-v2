@@ -21,7 +21,7 @@
           <div><span class="ico">${PL.ic('users')}</span><b>Clientes de tu zona</b><span>Apareces dentro de cada servicio que ofreces.</span></div>
           <div><span class="ico">${PL.ic('list')}</span><b>Tu equipo en un panel</b><span>Recibes solicitudes y las asignas a tu gente.</span></div>
           <div><span class="ico">${PL.ic('chat')}</span><b>Chat y presupuestos</b><span>El cliente te explica y tú pones tu precio.</span></div>
-          <div><span class="ico">${PL.ic('wallet')}</span><b>Cobras directo</b><span>Efectivo, Yape o Plin, al terminar.</span></div>
+          <div><span class="ico">${PL.ic('wallet')}</span><b>Les pagan en el momento</b><span>En efectivo o como acuerden por el chat.</span></div>
         </div></section>
       <section class="sec" id="pasos"><div class="sec-h"><span class="eti">${PL.ic('bolt')}Cómo unirte</span><h2>Cuatro <span class="k">pasos</span></h2></div>
         <ol class="ali-steps">

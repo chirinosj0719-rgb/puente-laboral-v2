@@ -2,8 +2,8 @@
 (function(){
   const PL = window.PL;
   const FAQ = [
-    ['¿Cuánto cuesta?', 'Tú propones el precio y se lo pagas directamente a quien hizo el trabajo, al terminar. [Comisión de Agéndalo: por definir]'],
-    ['¿Cómo se paga?', 'En efectivo, Yape o Plin, directamente a la persona o empresa que hizo el trabajo.'],
+    ['¿Cuánto cuesta?', 'Tú propones el precio y se paga en el momento, directo a quien hace el trabajo. [Comisión de Agéndalo: por definir]'],
+    ['¿Cómo se paga?', 'En el momento, directo a la persona o empresa: en efectivo o como acuerden por el chat de la app.'],
     ['¿Cómo verifican a los trabajadores y empresas?', 'Revisamos el DNI y el certificado de antecedentes de cada trabajador, y el RUC de cada empresa, antes de activarlos.'],
     ['¿Para qué es el código de inicio?', 'Es un número de 4 dígitos que solo tú tienes. Cuando llega la persona, se lo das y así confirmas que es quien aceptó tu pedido.'],
     ['¿Qué hago si algo sale mal?', 'Dentro del pedido usa el botón Ayuda: puedes llamar a emergencias o reportar el problema. También puedes registrar un reclamo en el Libro de Reclamaciones.'],
@@ -13,7 +13,7 @@
   PL.route('cuenta', view => {
     const S = PL.S, acc = PL.me();
     const name = (acc && acc.name) || S.client.name;
-    view.innerHTML = `<div class="wrap"><div class="page-h"><span class="eti">${PL.ic('user')}Tu cuenta</span><h1>${name ? `Hola, <span class="k">${PL.esc(name.split(' ')[0])}</span>` : 'Tu cuenta'}</h1></div>
+    view.innerHTML = `<div class="wrap"><div class="page-h"><span class="eti">${PL.ic('user')}Tu cuenta</span><h1>${acc && name ? `¡Hola, <span class="k">${PL.esc(name.split(' ')[0])}</span>!` : 'Tu cuenta'}</h1></div>
       <div class="acc">
         <div><div class="menu-page">${PL.menuHead()}${PL.menuList()}</div></div>
         <div><p class="eti">${PL.ic('help')}Preguntas frecuentes</p><div class="list">${FAQ.map(f => `<details class="faq"><summary>${f[0]}</summary><p>${f[1]}</p></details>`).join('')}</div>

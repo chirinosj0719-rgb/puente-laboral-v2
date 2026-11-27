@@ -11,6 +11,7 @@
   /* ——— información personal y contraseña ——— */
   PL.route('perfil', view => {
     const S = PL.S, c = S.client, acc = PL.me();
+    const hasPw = !!acc && (acc.fb ? !!acc.pw : !!acc.hash);
     let dist = c.district;
     view.innerHTML = page('user', 'Tu cuenta', 'Información personal', `
       <form id="pf" class="set-f">
@@ -19,18 +20,32 @@
         <p class="blk-t" style="font-size:.9rem;font-weight:600">Distrito</p>
         <button class="in" type="button" id="p-d" style="display:flex;align-items:center;gap:10px;text-align:left;cursor:pointer;margin-bottom:18px">${PL.ic('pin')}<span style="flex:1">${PL.esc(dist || 'Elige tu distrito')}</span>${PL.ic('chev')}</button>
         <button class="btn btn-t" type="submit">Guardar</button>
+        ${acc && acc.fb && acc.pw && acc.login && !acc.verified ? `<p class="set-note">${PL.ic('mail')}<span>Confirma tu correo con el enlace que te enviamos a ${PL.esc(acc.login)}. <button class="au-link" type="button" id="p-v">Enviarlo otra vez</button></span></p>` : ''}
       </form>
       <div class="set-sec" id="clave"><h2>${PL.ic('lock')}Contraseña</h2>
-        ${acc && !acc.hash ? `<p class="muted" style="margin-bottom:14px">${acc.google ? `Ingresas con tu cuenta de Google (${PL.esc(acc.email)}). También puedes crear una contraseña para ingresar con tu correo.` : 'Ingresas con tu celular. Si agregas tu correo arriba, puedes crear una contraseña para ingresar también con él.'}</p><form id="kf" class="set-f"><div class="row2"><label class="field"><span>Contraseña</span><input class="in" id="k-1" type="password" autocomplete="new-password"></label><label class="field"><span>Repite la contraseña</span><input class="in" id="k-2" type="password" autocomplete="new-password"></label></div><button class="btn btn-l" type="submit">Crear contraseña</button></form>`
-          : acc ? `<form id="kf" class="set-f"><label class="field"><span>Contraseña actual</span><input class="in" id="k-0" type="password" autocomplete="current-password"></label><div class="row2"><label class="field"><span>Nueva contraseña</span><input class="in" id="k-1" type="password" autocomplete="new-password"></label><label class="field"><span>Repite la nueva</span><input class="in" id="k-2" type="password" autocomplete="new-password"></label></div><button class="btn btn-l" type="submit">Cambiar contraseña</button></form>`
+        ${acc && !hasPw ? `<p class="muted" style="margin-bottom:14px">${acc.google ? `Ingresas con tu cuenta de Google (${PL.esc(acc.email)}). También puedes crear una contraseña para ingresar con tu correo.` : acc.email ? `Ingresas con tu celular. Puedes crear una contraseña para ingresar también con tu correo (${PL.esc(acc.email)}).` : 'Ingresas con tu celular. Si agregas tu correo arriba, puedes crear una contraseña para ingresar también con él.'}</p><form id="kf" class="set-f"><div class="row2"><label class="field"><span>Contraseña</span><input class="in" id="k-1" type="password" autocomplete="new-password"></label><label class="field"><span>Repite la contraseña</span><input class="in" id="k-2" type="password" autocomplete="new-password"></label></div><button class="btn btn-l" type="submit">Crear contraseña</button></form>`
+          : acc ? `<form id="kf" class="set-f"><label class="field"><span>Contraseña actual</span><input class="in" id="k-0" type="password" autocomplete="current-password"></label><div class="row2"><label class="field"><span>Nueva contraseña</span><input class="in" id="k-1" type="password" autocomplete="new-password"></label><label class="field"><span>Repite la nueva</span><input class="in" id="k-2" type="password" autocomplete="new-password"></label></div><button class="btn btn-l" type="submit">Cambiar contraseña</button></form>${acc.fb ? '<button class="au-link set-link" type="button" id="kfg">¿No recuerdas la actual? Te enviamos un enlace a tu correo</button>' : ''}`
           : `<p class="muted" style="margin-bottom:14px">Crea una cuenta con tu correo y una contraseña para proteger tus datos.</p><a class="btn btn-l" href="#/crear-cuenta?next=%23%2Fperfil">Crear cuenta</a>`}
       </div>`);
     PL.$('#p-d', view).onclick = () => PL.pickDistrict(dist, d => { dist = d; PL.$('#p-d span', view).textContent = d; });
-    PL.$('#pf', view).onsubmit = e => {
+    PL.$('#pf', view).onsubmit = async e => {
       e.preventDefault();
       const n = PL.$('#p-n', view).value.trim(), em = PL.$('#p-e', view).value.trim().toLowerCase(), ph = PL.$('#p-c', view).value.trim();
       if (em && !okMail(em)) return PL.toast('Escribe un correo válido');
       if (ph && !/^9\d{8}$/.test(ph)) return PL.toast('El celular tiene 9 dígitos y empieza con 9');
+      if (acc && acc.fb) {
+        const btn = e.submitter; if (btn) btn.disabled = true;
+        try {
+          if (n && n !== acc.name) await PL.fb.setName(n);
+          c.name = n || c.name; c.phone = ph; c.district = dist;
+          if (!acc.cel) acc.phone = ph;
+          if (acc.login && em && em !== acc.login) { await PL.fb.changeEmail(em); PL.save(); PL.toast(`Te enviamos un enlace a ${em}. Tu correo cambia cuando lo confirmes.`, 5200); return; }
+          if (!acc.login) { acc.email = em; c.email = em; }
+          PL.save(); if (PL.syncTop) PL.syncTop(); PL.toast('Datos guardados');
+        } catch (x) { PL.toast(PL.fb.msg(x), 4600); }
+        finally { if (btn) btn.disabled = false; }
+        return;
+      }
       c.name = n; c.email = em; c.phone = ph; c.district = dist;
       if (acc) {
         if (em && S.accounts.some(x => x !== acc && x.email === em)) return PL.toast('Ese correo ya lo usa otra cuenta');
@@ -39,10 +54,25 @@
       }
       PL.save(); PL.toast('Datos guardados');
     };
+    const pv = PL.$('#p-v', view); if (pv) pv.onclick = async () => { pv.disabled = true; try { await PL.fb.verifyMail(); PL.toast('Te enviamos el enlace otra vez. Revisa también la carpeta de spam.', 4600); } catch (x) { pv.disabled = false; PL.toast(PL.fb.msg(x), 4600); } };
+    const kfg = PL.$('#kfg', view); if (kfg) kfg.onclick = async () => { kfg.disabled = true; try { await PL.fb.resetMail(acc.login); PL.toast(`Te enviamos un enlace a ${acc.login} para crear una contraseña nueva.`, 5000); } catch (x) { kfg.disabled = false; PL.toast(PL.fb.msg(x), 4600); } };
     const kf = PL.$('#kf', view);
     if (kf) kf.onsubmit = async e => {
       e.preventDefault();
       const k0El = PL.$('#k-0', view), k1 = PL.$('#k-1', view).value;
+      if (acc.fb) {
+        if (hasPw && !k0El.value) return PL.toast('Escribe tu contraseña actual');
+        if (!hasPw && !acc.email) return PL.toast('Primero agrega tu correo y guarda tus datos');
+        if (k1.length < 8) return PL.toast('La nueva contraseña debe tener al menos 8 caracteres');
+        if (k1 !== PL.$('#k-2', view).value) return PL.toast('Las contraseñas no coinciden');
+        const btn = e.submitter; if (btn) btn.disabled = true;
+        try {
+          if (hasPw) { await PL.fb.changePw(k0El.value, k1); PL.toast('Contraseña actualizada'); }
+          else { await PL.fb.addPw(acc.email, k1); PL.toast('Contraseña creada. Ya puedes ingresar también con tu correo.', 4200); }
+          PL.render();
+        } catch (x) { if (btn) btn.disabled = false; PL.toast(/invalid-credential|wrong-password/.test(x.code || '') ? 'La contraseña actual no es correcta' : PL.fb.msg(x), 4600); }
+        return;
+      }
       if (acc.hash && acc.hash !== await hash(k0El.value)) return PL.toast('La contraseña actual no es correcta');
       if (!acc.hash && !acc.email) return PL.toast('Primero agrega tu correo y guarda tus datos');
       if (k1.length < 8) return PL.toast('La nueva contraseña debe tener al menos 8 caracteres');
@@ -138,9 +168,15 @@
         <a href="#/legal">${PL.ic('id')}<span>Información legal</span>${PL.ic('chev', 'i chev')}</a>
         <button type="button" id="wipe" style="color:#A1191F">${PL.ic('trash')}<span>Borrar mis datos de este dispositivo</span></button>
         ${S.session ? `<button type="button" id="out">${PL.ic('logout')}<span>Cerrar sesión</span></button>` : ''}
+        ${PL.me() && PL.me().fb ? `<button type="button" id="del" style="color:#A1191F">${PL.ic('x')}<span>Eliminar mi cuenta</span></button>` : ''}
       </div>`);
     PL.$('#wipe', view).onclick = async () => { if (await PL.confirm({title: '¿Borrar tus datos?', text: 'Se borran tus pedidos, direcciones, favoritos y perfiles de este dispositivo. No se puede deshacer.', ok: 'Sí, borrar', cancel: 'Cancelar', danger: true})) { PL.reset(); PL.toast('Datos borrados'); PL.go('#/'); } };
     const out = PL.$('#out', view); if (out) out.onclick = () => { PL.logout(); PL.go('#/'); };
+    const del = PL.$('#del', view); if (del) del.onclick = async () => {
+      if (!await PL.confirm({title: '¿Eliminar tu cuenta?', text: 'Se elimina tu cuenta de Agéndalo y ya no podrás ingresar con ella. Tus pedidos de este dispositivo no se borran. No se puede deshacer.', ok: 'Sí, eliminar', cancel: 'Cancelar', danger: true})) return;
+      try { await PL.fb.remove(); PL.syncTop(); PL.toast('Eliminamos tu cuenta'); PL.go('#/'); }
+      catch (x) { PL.toast(PL.fb.msg(x), 4600); }
+    };
   }, {tab: 'cuenta'});
 
   /* ——— información legal ——— */

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agéndalo · El check como “l”</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,400..800&family=Geist:wght@500;800&family=Plus+Jakarta+Sans:wght@800&family=Manrope:wght@800&family=Outfit:wght@700&family=Sora:wght@700&family=Bricolage+Grotesque:opsz,wght@12..96,800&family=Space+Grotesk:wght@700&family=Unbounded:wght@700&family=Nunito:wght@900&family=Fraunces:opsz,wght@9..144,800&family=Poppins:wght@700&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#17110D;--cream:#F4ECE3;--paper:#FAF7F2;--line:#E6DDD2;--muted:#7A6F66;--acc:#FF5A1F}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font:400 16px/1.5 "Google Sans Flex",system-ui,sans-serif}
+  header{padding:48px clamp(20px,5vw,72px) 28px;border-bottom:1px solid var(--line)}
+  header h1{margin:0;font-size:clamp(2rem,4vw,3.2rem);letter-spacing:-.045em;font-weight:650}
+  header p{margin:8px 0 0;color:var(--muted);max-width:66ch}
+  h2{margin:0;padding:30px clamp(20px,5vw,72px) 14px;font-size:1.35rem;letter-spacing:-.03em;font-weight:650;border-bottom:1px solid var(--line)}
+  h2 small{font-weight:400;font-size:.95rem;color:var(--muted);letter-spacing:0;margin-left:8px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));border-bottom:1px solid var(--line)}
+  .cell{position:relative;display:grid;place-items:center;min-height:230px;padding:52px 34px 40px;border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .cell.dk{background:var(--ink)}
+  .cell.or{background:var(--acc)}
+  .cell .n{position:absolute;left:18px;top:14px;display:flex;align-items:center;gap:8px;font-size:.8rem;color:var(--muted)}
+  .cell .n b{display:inline-grid;place-items:center;min-width:26px;height:26px;padding:0 6px;border-radius:13px;background:var(--ink);color:#fff;font-size:.78rem}
+  .cell.dk .n,.cell.or .n{color:rgba(255,255,255,.7)}
+  .cell.dk .n b,.cell.or .n b{background:#fff;color:var(--ink)}
+  .cell svg{width:min(100%,430px);height:auto;overflow:visible}
+</style>
+</head>
+<body>
+<header><h1>El check como “l”</h1><p>La idea que elegiste, en doce tipografías y con variantes. En todas, el brazo largo del check llega al alto de la “d” y la “o” se mete debajo del brazo; su posición se calcula con la forma de cada letra para que no choque. Pesos gruesos para que el trazo de las letras se parezca al del check.</p></header>
+<main id="m"></main>
+<div id="scratch" style="position:absolute;left:-9999px;top:0;width:2400px"></div>
+<script>
+const CK = 'M15 57.5A2.5 2.5 0 0 1 17.5 55L32.5 55A2.5 2.5 0 0 1 35 57.5L35 64A1 1 0 0 0 36 65L54 65A1 1 0 0 0 55 64L55 57.5A2.5 2.5 0 0 1 57.5 55L64 55A1 1 0 0 0 65 54L65 47.5A2.5 2.5 0 0 1 67.5 45L74 45A1 1 0 0 0 75 44L75 37.5A2.5 2.5 0 0 1 77.5 35L84 35A1 1 0 0 0 85 34L85 27.5A2.5 2.5 0 0 1 87.5 25L95 25A10 10 0 0 1 105 35L105 42.5A2.5 2.5 0 0 1 102.5 45L96 45A1 1 0 0 0 95 46L95 52.5A2.5 2.5 0 0 1 92.5 55L86 55A1 1 0 0 0 85 56L85 62.5A2.5 2.5 0 0 1 82.5 65L76 65A1 1 0 0 0 75 66L75 72.5A2.5 2.5 0 0 1 72.5 75L66 75A1 1 0 0 0 65 76L65 82.5A2.5 2.5 0 0 1 62.5 85L56 85A1 1 0 0 0 55 86L55 92.5A2.5 2.5 0 0 1 52.5 95L37.5 95A2.5 2.5 0 0 1 35 92.5L35 86A1 1 0 0 0 34 85L27.5 85A2.5 2.5 0 0 1 25 82.5L25 76A1 1 0 0 0 24 75L17.5 75A2.5 2.5 0 0 1 15 72.5Z';
+/* borde de abajo del brazo largo, en escalones (y desde, y hasta, x) dentro del viewBox del check */
+const ARM = [[25, 45, 105], [45, 55, 95], [55, 65, 85], [65, 75, 75], [75, 85, 65], [85, 95, 55]];
+const ORANGE = '#FF5A1F', INK = '#17110D', CREAM = '#F4ECE3', F = 100, NS = 'http://www.w3.org/2000/svg';
+
+const FONTS = [
+  {f: 'Google Sans Flex', w: 800, ls: -4.5, note: 'la de la app, más gruesa'},
+  {f: 'Geist', w: 800, ls: -5, note: 'la de Vercel'},
+  {f: 'Plus Jakarta Sans', w: 800, ls: -4.5},
+  {f: 'Manrope', w: 800, ls: -4},
+  {f: 'Outfit', w: 700, ls: -4},
+  {f: 'Sora', w: 700, ls: -5},
+  {f: 'Bricolage Grotesque', w: 800, ls: -4.5, note: 'con carácter'},
+  {f: 'Space Grotesk', w: 700, ls: -5},
+  {f: 'Unbounded', w: 700, ls: -3, note: 'ancha'},
+  {f: 'Nunito', w: 900, ls: -3, note: 'redondeada'},
+  {f: 'Poppins', w: 700, ls: -4},
+  {f: 'Fraunces', w: 800, ls: -3, note: 'con serifa suave'}
+];
+
+const cv = document.createElement('canvas').getContext('2d');
+const ink = (fam, w, ch) => { cv.font = `${w} ${F}px "${fam}"`; const m = cv.measureText(ch); return {asc: m.actualBoundingBoxAscent, desc: m.actualBoundingBoxDescent, l: m.actualBoundingBoxLeft, r: m.actualBoundingBoxRight}; };
+
+/* o: {f, w, ls, up (mayúsculas), col (texto), ck (color del check), oCol (color de la o), scale (alto del check respecto de la d), gap} */
+function mark(o){
+  const svg = document.createElementNS(NS, 'svg'); svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', 'agéndalo');
+  const T = txt => { const t = document.createElementNS(NS, 'text'); t.setAttribute('x', 0); t.setAttribute('y', 0); t.setAttribute('font-family', o.f); t.setAttribute('font-weight', o.w); t.setAttribute('font-size', F); t.setAttribute('letter-spacing', o.ls); t.setAttribute('fill', o.col); t.textContent = txt; svg.appendChild(t); return t; };
+  document.getElementById('scratch').appendChild(svg);
+  const word = o.up ? 'AGÉNDA' : 'agénda', last = o.up ? 'A' : 'a', oo = o.up ? 'O' : 'o';
+  const t = T(word), i = word.length - 1;
+  const aR = t.getStartPositionOfChar(i).x + ink(o.f, o.w, last).r;
+  /* alto del check: el de la “d” (o el de las mayúsculas) */
+  const H = ink(o.f, o.w, o.up ? 'L' : 'd').asc * (o.scale || 1), s = H / 70;
+  const gap = (o.gap != null ? o.gap : 4);
+  const x0 = aR + gap;                                   /* x del borde izquierdo del check (vb x = 15) */
+  const p = document.createElementNS(NS, 'path'); p.setAttribute('d', CK); p.setAttribute('fill', o.ck);
+  p.setAttribute('transform', `translate(${(x0 - 15 * s).toFixed(2)} ${(-H - 25 * s).toFixed(2)}) scale(${s.toFixed(4)})`); svg.appendChild(p);
+  /* la “o” como círculo de radio r (en unidades del check), apoyada en la base: se corre hasta no tocar ningún escalón del brazo */
+  const mo = ink(o.f, o.w, oo), r = (mo.asc + mo.desc) / 2 / s, cy = 95 - mo.asc / s + r, clear = gap / s;
+  let cx = 0;
+  ARM.forEach(([y1, y2, X]) => { const dy = cy < y1 ? y1 - cy : cy > y2 ? cy - y2 : 0; if (dy < r) cx = Math.max(cx, X + clear + Math.sqrt(r * r - dy * dy)); });
+  const oLeft = x0 + (cx - r - 15) * s;
+  const ot = T(oo); ot.setAttribute('x', (oLeft + mo.l).toFixed(2)); if (o.oCol) ot.setAttribute('fill', o.oCol);
+  const bb = svg.getBBox(), pad = 2;
+  svg.setAttribute('viewBox', `${(bb.x - pad).toFixed(1)} ${(bb.y - pad).toFixed(1)} ${(bb.width + pad * 2).toFixed(1)} ${(bb.height + pad * 2).toFixed(1)}`);
+  return svg;
+}
+
+function cell(grid, n, label, o, cls = ''){
+  const c = document.createElement('div'); c.className = 'cell ' + cls;
+  c.innerHTML = `<span class="n"><b>${n}</b>${label}</span>`;
+  c.appendChild(mark(o)); grid.appendChild(c);
+}
+
+async function run(){
+  await Promise.all(FONTS.map(x => document.fonts.load(`${x.w} ${F}px "${x.f}"`, 'agéndalo AGÉNDALO')));
+  await document.fonts.load(`500 ${F}px "Geist"`, 'agéndalo');
+  await document.fonts.ready;
+  const m = document.getElementById('m');
+  const sec = (title, sub) => { m.insertAdjacentHTML('beforeend', `<h2>${title}${sub ? `<small>${sub}</small>` : ''}</h2><div class="grid"></div>`); return m.lastElementChild; };
+
+  let g = sec('Doce tipografías', 'misma idea, tinta y check naranja');
+  FONTS.forEach((x, k) => cell(g, k + 1, x.f + (x.note ? ` · ${x.note}` : ''), Object.assign({}, x, {col: INK, ck: ORANGE})));
+
+  g = sec('Variantes', 'sobre Google Sans Flex, Geist y Bricolage');
+  const base = FONTS[0], gei = FONTS[1], bri = FONTS[6];
+  cell(g, 'V1', 'En oscuro', Object.assign({}, base, {col: CREAM, ck: ORANGE}), 'dk');
+  cell(g, 'V2', 'Todo en tinta, sin color', Object.assign({}, base, {col: INK, ck: INK}));
+  cell(g, 'V3', 'Sobre naranja', Object.assign({}, base, {col: '#fff', ck: INK}), 'or');
+  cell(g, 'V4', 'La “o” también naranja', Object.assign({}, base, {col: INK, ck: ORANGE, oCol: ORANGE}));
+  cell(g, 'V5', 'Check más alto que la “d”', Object.assign({}, base, {col: INK, ck: ORANGE, scale: 1.18}));
+  cell(g, 'V6', 'Más aire alrededor del check', Object.assign({}, base, {col: INK, ck: ORANGE, gap: 9}));
+  cell(g, 'V7', 'Mayúsculas · Google Sans Flex', Object.assign({}, base, {up: true, ls: -2, col: INK, ck: ORANGE}));
+  cell(g, 'V8', 'Mayúsculas · Geist', Object.assign({}, gei, {up: true, ls: -3, col: INK, ck: ORANGE}));
+  cell(g, 'V9', 'Mayúsculas · Bricolage', Object.assign({}, bri, {up: true, ls: -2, col: INK, ck: ORANGE}));
+  cell(g, 'V10', 'Geist en oscuro', Object.assign({}, gei, {col: CREAM, ck: ORANGE}), 'dk');
+  cell(g, 'V11', 'Bricolage en oscuro', Object.assign({}, bri, {col: CREAM, ck: ORANGE}), 'dk');
+  cell(g, 'V12', 'Geist más liviana (para comparar el grosor)', {f: 'Geist', w: 500, ls: -4, col: INK, ck: ORANGE});
+}
+run();
+</script>
+</body>
+</html>

@@ -16,7 +16,7 @@
       <div class="bens">
         <div class="ben"><span class="ico">${PL.ic('bolt')}</span><div><b>Solicitudes inmediatas</b><span>Te conectas cuando estás disponible y aceptas las que te quedan cerca.</span></div></div>
         <div class="ben"><span class="ico">${PL.ic('cal')}</span><div><b>Agenda para otros días</b><span>Acepta trabajos programados y arma tu semana.</span></div></div>
-        <div class="ben"><span class="ico">${PL.ic('wallet')}</span><div><b>Cobras directo</b><span>Efectivo, Yape o Plin, al terminar.</span></div></div>
+        <div class="ben"><span class="ico">${PL.ic('wallet')}</span><div><b>Te pagan en el momento</b><span>En efectivo o como acuerden por el chat.</span></div></div>
         <div class="ben"><span class="ico">${PL.ic('heart')}</span><div><b>Clientes que vuelven</b><span>Si les gustó tu trabajo, te piden directo otra vez.</span></div></div>
       </div></div></section>
       <div class="wrap">
@@ -182,7 +182,7 @@
 
   function reqCard(view, n, map){
     const W = PL.S.worker, svc = PL.svc(PL.pick(W.trades)), st = PL.step(svc);
-    const kind = !PL.canNow(svc) ? 'prog' : Math.random() < .55 ? 'ya' : 'prog', direct = Math.random() < .22;
+    const kind = !PL.canNow(svc) ? 'prog' : Math.random() < .3 ? 'ya' : 'prog', direct = Math.random() < .22;
     const date = kind === 'prog' ? PL.isoDay(new Date(Date.now() + PL.ri(1, 9) * 864e5)) : '', time = kind === 'prog' ? PL.pick(['08:00', '09:00', '10:00', '14:00', '16:00', '19:00']) : '';
     const repeat = kind === 'prog' && Math.random() < .3 ? PL.pick(['semana', 'quincena']) : 'no';
     const r = {id: 'r' + n, kind, direct, date, time, repeat, svc: svc.id, tasks: svc.t.length ? [PL.pick(svc.t)] : [], district: PL.pick(W.zones.filter(z => PL.zone(z)).length ? W.zones.filter(z => PL.zone(z)) : ['Miraflores']), km: 0, when: kind === 'ya' ? 'Ahora' : PL.whenText({type: 'fecha', date, time}), price: 0, client: PL.pick(PL.DEMO.clients)};
@@ -222,11 +222,11 @@
     const W = PL.S.worker, a = W.active, box = PL.$('#active', view);
     if (!a) { box.innerHTML = ''; return; }
     const svc = PL.svc(a.svc);
-    const STG = [['Aceptado', 'Voy en camino'], ['En camino', 'Llegué'], ['Llegaste', 'Empezar trabajo'], ['Trabajando', 'Terminé el trabajo'], ['Cobrar', `Cobré ${PL.money(a.price)}`]];
+    const STG = [['Aceptado', 'Voy en camino'], ['En camino', 'Llegué'], ['Llegaste', 'Empezar trabajo'], ['Trabajando', 'Terminé el trabajo']];
     box.innerHTML = `<div class="card" style="border:1.5px solid var(--tinta)"><div class="req-h"><span class="svc-ic">${PL.si(svc.i)}</span><div class="req-i"><span class="eti v">Trabajo activo · ${STG[a.stage][0]}</span><b style="margin-top:6px">${PL.esc(svc.n)} para ${PL.esc(a.client)}</b><span>${PL.esc(a.district)} · ${PL.esc(a.when)}</span></div><div class="req-p"><b>${PL.money(a.price)}</b></div></div>
       <div class="job-steps" aria-hidden="true">${STG.map((s, i) => `<i class="${i <= a.stage ? 'on' : ''}"></i>`).join('')}</div>
       ${a.stage === 2 ? `<p style="font-weight:600;text-align:center">Pídele a ${PL.esc(a.client)} su código de inicio</p><div class="pin-in">${[0, 1, 2, 3].map(i => `<input inputmode="numeric" maxlength="1" aria-label="Dígito ${i + 1}" data-i="${i}">`).join('')}</div><p class="muted mono" style="text-align:center;font-size:.74rem">Código del cliente: ${a.pin}</p>` : ''}
-      ${a.stage === 4 ? `<p class="req-note">Cobra directo: efectivo, Yape o Plin.</p>` : ''}
+      ${a.stage === 3 ? `<p class="req-note">El pago es en el momento: en efectivo o como acordaron por el chat.</p>` : ''}
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px"><a class="btn btn-l btn-sm" target="_blank" rel="noopener" href="${PL.ll(a.pos) ? `https://www.google.com/maps/dir/?api=1&destination=${a.pos[0]},${a.pos[1]}` : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(a.district + ', Lima')}`}">${PL.ic('nav')}Cómo llegar</a><button class="btn btn-l btn-sm" type="button" id="jx">No puedo ir</button></div>
       <button class="btn btn-t btn-full" type="button" id="jn" style="margin-top:8px">${STG[a.stage][1]}</button></div>`;
     const jn = PL.$('#jn', box);
@@ -237,7 +237,7 @@
     }
     jn.onclick = () => {
       if (a.stage === 2 && pins.map(x => x.value).join('') !== a.pin) { PL.toast('Código incorrecto. Pídelo de nuevo.'); pins.forEach(x => { x.value = ''; }); pins[0].focus(); jn.disabled = true; return; }
-      if (a.stage < 4) { a.stage++; PL.save(); drawActive(view); return; }
+      if (a.stage < 3) { a.stage++; PL.save(); drawActive(view); return; }
       W.jobs.push({at: Date.now(), svc: a.svc, price: a.price, client: a.client, district: a.district, direct: !!a.direct});
       W.active = null; PL.save(); PL.toast(`Ganaste ${PL.money(a.price)}. ¡Buen trabajo!`, 3200); PL.render();
     };

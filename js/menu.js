@@ -20,7 +20,7 @@
   PL.menuList = () => PL.menuGroups().map(([g, items]) => `<p class="mg">${g}</p><div class="ml">${items.map(([ic, t, h]) => `<a href="${h}"${h === '#ayuda' ? ' data-help' : ''}>${PL.ic(ic)}<span>${t}</span>${PL.ic('chev', 'i chev')}</a>`).join('')}</div>`).join('')
     + (PL.S.session ? `<button class="ml-out" type="button" data-logout>${PL.ic('logout')}Cerrar sesión</button>` : '');
 
-  PL.logout = () => { try { if (window.google && google.accounts && google.accounts.id) google.accounts.id.disableAutoSelect(); } catch (e) {} PL.S.session = null; PL.save(); PL.toast('Cerraste sesión'); PL.syncTop(); if (inApp()) PL.render(); };
+  PL.logout = () => { if (PL.fb) PL.fb.out(); PL.S.session = null; PL.save(); PL.toast('Cerraste sesión'); PL.syncTop(); if (inApp()) PL.render(); };
   /* botón de cuenta en la barra de arriba: "Ingresar" o tu nombre */
   PL.syncTop = () => {
     const tb = PL.$('.top-in'); if (!tb) return;

@@ -30,7 +30,7 @@
   PL.ftime = ts => { const d = new Date(ts); return PL.fhm(`${d.getHours()}:${d.getMinutes()}`); };
   PL.isoDay = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   PL.dayName = iso => { const t = PL.isoDay(new Date()), m = PL.isoDay(new Date(Date.now() + 864e5)); return iso === t ? 'Hoy' : iso === m ? 'Mañana' : PL.fdate(iso + 'T12:00'); };
-  PL.whenText = w => !w || w.type === 'ahora' ? 'Ahora' : w.type === 'hoy' ? `Hoy, ${PL.fhm(w.time)}` : `${PL.dayName(w.date)}, ${PL.fhm(w.time)}`;
+  PL.whenText = w => !w || w.type === 'ahora' ? 'Ahora' : w.type === 'flex' ? 'Fecha a coordinar' : w.type === 'hoy' ? `Hoy, ${PL.fhm(w.time)}` : `${PL.dayName(w.date)}, ${PL.fhm(w.time)}`;
   PL.whenTs = w => !w || !w.date ? Date.now() : new Date(`${w.date}T${w.time || '09:00'}`).getTime();
   PL.canNow = s => s.now !== 0;
   PL.unitText = u => PL.UNITS[u] || '';
@@ -51,9 +51,12 @@
   })(PL.S);
   PL.me = () => (PL.S.session && (PL.S.accounts || []).find(a => a.id === PL.S.session.id)) || null;
   PL.save = () => { try { localStorage.setItem(C.STORE, JSON.stringify(PL.S)); } catch (e) {} PL.updateDot(); };
-  PL.reset = () => { try { localStorage.removeItem(C.STORE); } catch (e) {} PL.S = DEF(); PL.S.accounts = []; PL.updateDot(); };
+  PL.reset = () => { if (PL.fb) PL.fb.out(); try { localStorage.removeItem(C.STORE); } catch (e) {} PL.S = DEF(); PL.S.accounts = []; PL.updateDot(); };
 
-  PL.ACTIVE = ['buscando', 'programado', 'en_camino', 'llego', 'trabajando', 'pagar', 'calificar'];
+  PL.ACTIVE = ['buscando', 'programado', 'en_camino', 'llego', 'trabajando', 'calificar'];
+  /* el pago es en el momento, directo con quien hizo el trabajo: la app no lleva cuentas ni deudas */
+  (PL.S.orders || []).forEach(o => { if (o.status === 'pagar') o.status = 'calificar'; if (o.pay && o.pay !== 'efectivo') o.pay = 'chat'; });
+  PL.payText = o => o.pay === 'efectivo' ? 'Efectivo, en el momento' : 'Como acordaron por el chat';
   PL.order = id => PL.S.orders.find(o => o.id === id);
   PL.activeOrders = () => PL.S.orders.filter(o => PL.ACTIVE.includes(o.status));
   PL.total = o => o.price * (o.people || 1) * (o.u === 'hora' ? (o.hours || 1) : 1);

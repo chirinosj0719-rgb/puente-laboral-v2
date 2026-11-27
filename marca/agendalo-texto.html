@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agéndalo · El check dentro del nombre</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,400..800&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#17110D;--cream:#F4ECE3;--paper:#FAF7F2;--line:#E6DDD2;--muted:#7A6F66;--acc:#FF5A1F}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font:400 16px/1.5 "Google Sans Flex",system-ui,sans-serif}
+  header{padding:48px clamp(20px,5vw,72px) 28px;border-bottom:1px solid var(--line)}
+  header h1{margin:0;font-size:clamp(2rem,4vw,3.2rem);letter-spacing:-.045em;font-weight:650}
+  header p{margin:8px 0 0;color:var(--muted);max-width:60ch}
+  section{display:grid;grid-template-columns:minmax(0,1fr);border-bottom:1px solid var(--line)}
+  .head{padding:28px clamp(20px,5vw,72px) 0}
+  .head b{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--ink);color:#fff;font-size:.95rem;margin-right:10px}
+  .head h2{display:inline;font-size:1.35rem;letter-spacing:-.03em;font-weight:650}
+  .head p{margin:6px 0 0 44px;color:var(--muted);max-width:62ch}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:0;margin-top:22px;border-top:1px solid var(--line)}
+  .tile{display:grid;place-items:center;min-height:240px;padding:40px 32px;border-right:1px solid var(--line)}
+  .tile:last-child{border-right:0}
+  .tile.dk{background:var(--ink)}
+  .tile.or{background:var(--acc)}
+  .tile svg{width:min(100%,520px);height:auto;overflow:visible}
+  .uses{display:flex;flex-wrap:wrap;align-items:center;gap:28px 48px;padding:18px clamp(20px,5vw,72px) 26px;border-top:1px solid var(--line)}
+  .bar{display:flex;align-items:center;gap:12px;padding:10px 16px;border-radius:14px;background:#fff;border:1px solid var(--line)}
+  .bar svg{height:26px;width:auto;overflow:visible}
+  .bar span{font-size:.85rem;color:var(--muted)}
+  .sm svg{height:18px;width:auto;overflow:visible}
+  .lbl{font-size:.78rem;color:var(--muted)}
+</style>
+</head>
+<body>
+<header><h1>El check dentro del nombre</h1><p>Cinco formas de que el check escalonado reemplace o forme parte de una letra. Cada una en claro, en oscuro y en tamaño chico, como se vería en la barra de la app.</p></header>
+<main id="opts"></main>
+
+<script>
+/* trazo del check (viewBox 15 25 90 70): punta redondeada, esquinas de afuera suaves */
+const CK = 'M15 57.5A2.5 2.5 0 0 1 17.5 55L32.5 55A2.5 2.5 0 0 1 35 57.5L35 64A1 1 0 0 0 36 65L54 65A1 1 0 0 0 55 64L55 57.5A2.5 2.5 0 0 1 57.5 55L64 55A1 1 0 0 0 65 54L65 47.5A2.5 2.5 0 0 1 67.5 45L74 45A1 1 0 0 0 75 44L75 37.5A2.5 2.5 0 0 1 77.5 35L84 35A1 1 0 0 0 85 34L85 27.5A2.5 2.5 0 0 1 87.5 25L95 25A10 10 0 0 1 105 35L105 42.5A2.5 2.5 0 0 1 102.5 45L96 45A1 1 0 0 0 95 46L95 52.5A2.5 2.5 0 0 1 92.5 55L86 55A1 1 0 0 0 85 56L85 62.5A2.5 2.5 0 0 1 82.5 65L76 65A1 1 0 0 0 75 66L75 72.5A2.5 2.5 0 0 1 72.5 75L66 75A1 1 0 0 0 65 76L65 82.5A2.5 2.5 0 0 1 62.5 85L56 85A1 1 0 0 0 55 86L55 92.5A2.5 2.5 0 0 1 52.5 95L37.5 95A2.5 2.5 0 0 1 35 92.5L35 86A1 1 0 0 0 34 85L27.5 85A2.5 2.5 0 0 1 25 82.5L25 76A1 1 0 0 0 24 75L17.5 75A2.5 2.5 0 0 1 15 72.5Z';
+const ORANGE = '#FF5A1F', INK = '#17110D', CREAM = '#F4ECE3';
+const F = 100, W8 = 600, FAM = '"Google Sans Flex"';
+const NS = 'http://www.w3.org/2000/svg';
+
+/* medidas de la tinta de cada letra (no de la caja): para apoyar el check justo donde termina la letra */
+const cx2 = document.createElement('canvas').getContext('2d');
+const ink = (ch, w = W8) => { cx2.font = `${w} ${F}px ${FAM}`; const m = cx2.measureText(ch); return {asc: m.actualBoundingBoxAscent, l: m.actualBoundingBoxLeft, r: m.actualBoundingBoxRight}; };
+/* coloca el check: x0,y0 = esquina superior izquierda, w = ancho */
+const place = (p, x0, y0, w) => { const s = w / 90; p.setAttribute('transform', `translate(${(x0 - 15 * s).toFixed(2)} ${(y0 - 25 * s).toFixed(2)}) scale(${s.toFixed(4)})`); return s; };
+
+const OPTS = [
+  {k: 'tilde', t: 'El acento es el check', d: 'La tilde de la “é” se reemplaza por el check. Es el gesto más natural: la palabra ya tiene un acento y sube hacia la derecha, igual que el check.'},
+  {k: 'tildeUp', t: 'El acento es el check, en mayúsculas', d: 'Lo mismo sobre “AGÉNDALO”. Más firme y de marca; el check queda como una corona sobre la É.'},
+  {k: 'badge', t: 'La “o” final es un botón con el check', d: 'La última letra se vuelve un círculo naranja con el check en blanco: se lee “agéndalo” y termina como un botón de “listo”.'},
+  {k: 'final', t: 'El check reemplaza a la “o” final', d: '“agéndal” y el check, del alto y el grosor de las letras. El final queda como una confirmación: agendado, listo.'},
+  {k: 'tildeBig', t: 'Acento grande que abraza la palabra', d: 'El check más grande, apoyado sobre la “é” y extendido hacia la derecha por encima de “ndalo”. Más expresivo, para portada y redes.'}
+];
+
+function build(kind, dark){
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', 'agéndalo');
+  const col = dark ? CREAM : INK;
+  const T = (txt, ls = -5) => { const t = document.createElementNS(NS, 'text'); t.setAttribute('y', 0); t.setAttribute('x', 0); t.setAttribute('font-family', 'Google Sans Flex'); t.setAttribute('font-weight', W8); t.setAttribute('font-size', F); t.setAttribute('letter-spacing', ls); t.setAttribute('fill', col); t.textContent = txt; svg.appendChild(t); return t; };
+  const P = (fill = ORANGE) => { const p = document.createElementNS(NS, 'path'); p.setAttribute('d', CK); p.setAttribute('fill', fill); svg.appendChild(p); return p; };
+  document.getElementById('scratch').appendChild(svg);   /* hay que estar en la página para medir */
+  const start = (t, i) => t.getStartPositionOfChar(i).x, end = (t, i) => t.getEndPositionOfChar(i).x;
+
+  if (kind === 'tilde' || kind === 'tildeBig') {
+    const t = T('agendalo'), i = 2, m = ink('e'), s0 = start(t, i), mid = s0 + (m.r - m.l) / 2;
+    if (kind === 'tilde') { const w = 35, h = w * 70 / 90; place(P(), mid - w / 2 + 6, -m.asc - 9 - h, w); }
+    else { const w = 128, h = w * 70 / 90, x0 = mid - 14; place(P(), x0, -m.asc - 8 - h, w); }
+  }
+  if (kind === 'tildeUp') {
+    const t = T('AGENDALO', -3), i = 2, m = ink('E'), s0 = start(t, i), mid = s0 + (m.r - m.l) / 2;
+    const w = 40, h = w * 70 / 90; place(P(), mid - w / 2 + 6, -m.asc - 9 - h, w);
+  }
+  if (kind === 'badge') {
+    const t = T('agéndal'), n = 6, xEnd = end(t, n), xh = ink('o').asc, d = xh * 1.08;
+    const c = document.createElementNS(NS, 'circle'); const cx = xEnd + d / 2 + 3, cy = -d / 2 + 1;
+    c.setAttribute('cx', cx); c.setAttribute('cy', cy); c.setAttribute('r', d / 2); c.setAttribute('fill', ORANGE); svg.appendChild(c);
+    const w = d * .56, h = w * 70 / 90; place(P(dark ? INK : '#fff'), cx - w / 2 - 1, cy - h / 2, w);
+  }
+  if (kind === 'lcheck') {
+    const t = T('agénda'), n = 5, xEnd = end(t, n), H = ink('l').asc, s = H / 70, w = 90 * s, x0 = xEnd + 2;
+    place(P(), x0, -H, w);
+    const mo = ink('o'), o = T('o'), left = x0 + (80 - 15) * s + 3;   /* la “o” entra debajo del brazo largo */
+    o.setAttribute('x', (left + mo.l).toFixed(2));
+  }
+  if (kind === 'final') {
+    /* mismo grosor que las letras: el trazo del check mide 20 de 90, el palo de la letra unos 13 */
+    const t = T('agéndal'), n = 6, xEnd = end(t, n), w = 66, H = w * 70 / 90;
+    place(P(), xEnd + 5, -H, w);
+  }
+  const bb = svg.getBBox(), pad = 2;
+  svg.setAttribute('viewBox', `${(bb.x - pad).toFixed(1)} ${(bb.y - pad).toFixed(1)} ${(bb.width + pad * 2).toFixed(1)} ${(bb.height + pad * 2).toFixed(1)}`);
+  return svg;
+}
+
+async function run(){
+  await document.fonts.load(`${W8} ${F}px ${FAM}`); await document.fonts.ready;
+  const main = document.getElementById('opts');
+  OPTS.forEach((o, k) => {
+    const sec = document.createElement('section');
+    sec.innerHTML = `<div class="head"><b>${String.fromCharCode(65 + k)}</b><h2>${o.t}</h2><p>${o.d}</p></div><div class="tiles"><div class="tile" data-l></div><div class="tile dk" data-d></div></div>
+      <div class="uses"><span class="lbl">En la barra de la app</span><div class="bar" data-b></div><span class="lbl">Chico</span><div class="sm" data-s></div></div>`;
+    main.appendChild(sec);
+    sec.querySelector('[data-l]').appendChild(build(o.k, false));
+    sec.querySelector('[data-d]').appendChild(build(o.k, true));
+    sec.querySelector('[data-b]').appendChild(build(o.k, false));
+    sec.querySelector('[data-s]').appendChild(build(o.k, false));
+  });
+}
+</script>
+<div id="scratch" style="position:absolute;left:-9999px;top:0;width:2000px"></div>
+<script>run();</script>
+</body>
+</html>

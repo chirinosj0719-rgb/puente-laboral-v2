@@ -416,3 +416,15 @@
 .legal-note{font-size:.8rem;color:var(--muted);margin:18px 0 0;line-height:1.5}
 .legal-note a{color:var(--ink)}
 @media (min-width:900px){.fp-steps{padding:4px 32px 14px}}
+
+/* para cuándo: agendar es lo principal; lo antes posible y sin fecha fija son opciones */
+.when-pick{display:grid;gap:8px;margin-bottom:6px}
+.when-pick button{display:flex;align-items:center;gap:14px;width:100%;padding:14px 16px;border:1.5px solid var(--line);border-radius:18px;background:var(--card);text-align:left;color:inherit;transition:border-color .15s,background .15s}
+.when-pick button>svg{width:22px;height:22px;color:var(--acc);flex:none}
+.when-pick button>span{flex:1;min-width:0}
+.when-pick b{display:block;font-weight:650}
+.when-pick button>span>span{display:block;font-size:.84rem;color:var(--muted)}
+.when-pick [aria-checked="true"]{border-color:var(--ink);background:var(--bg)}
+.when-pick [aria-checked="true"] .radio{border:7px solid var(--acc)}
+.when-pick button:disabled{opacity:.5;cursor:not-allowed}
+#wb .when-sum{margin-top:14px}

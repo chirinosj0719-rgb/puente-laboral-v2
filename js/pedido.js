@@ -1,6 +1,6 @@
-/* Agéndalo · pedir un servicio, paso a paso
-   Inmediato  (mode 'ya'):   servicio → dirección → confirmar. Alguien va ahora.
-   Programado (mode 'prog'): servicio → día → dirección → confirmar. Con anticipación, una vez o repetido.
+/* Agéndalo · pedir un servicio, paso a paso: servicio → para cuándo → dirección → confirmar.
+   Lo principal es agendar (día y hora, una vez o repetido). Si es urgente, en "para cuándo" se elige
+   "Lo antes posible" (mode 'ya'); y si solo necesitas contratar a alguien, "Sin fecha fija".
    La dirección se elige en el mapa real (pin fijo, búsqueda o tu ubicación) y tiene que caer dentro de la zona de servicio.
    Con ?w=Nombre el pedido va directo a un trabajador de confianza; con ?b=id, a una empresa. */
 (function(){
@@ -132,34 +132,32 @@
     let fav = qs.get('w') ? PL.fav(qs.get('w')) : null;
     const pros = PL.svcWorkers(svc.id), bizHere = PL.bizFor(svc.id);
     const bizQ = qs.get('b') ? PL.biz(qs.get('b')) : null;
-    let mode = qs.get('m') || PL.mode || 'ya';
-    if (mode === 'ya' && !PL.canNow(svc)) mode = 'prog';
-    PL.mode = mode;
+    /* un solo camino: el modo sale de lo que se elija en "para cuándo" */
+    let mode = qs.get('m') === 'ya' && PL.canNow(svc) ? 'ya' : 'prog';
     const favsHere = S.favs.filter(f => PL.history(f.name).some(o => o.svc === svc.id));
     const lastPrice = name => { const h = PL.history(name).find(o => o.svc === svc.id); return h ? h.price : null; };
     const start = (re && re.lat ? {lat: re.lat, lng: re.lng, line: re.line || '', district: re.district, floor: re.floor || '', ref: re.ref || ''} : null)
       || (re && PL.zone(re.district) ? Object.assign(locOf(re.district), {line: re.address || '', approx: true}) : null)
       || PL.startLoc() || Object.assign(locOf('Miraflores'), {approx: true});
     const D = {
-      tasks: re ? re.tasks.slice() : [], note: re ? re.note : (qs.get('d') || ''), photos: [],
+      tasks: re ? re.tasks.slice() : qs.get('t') && svc.t.includes(qs.get('t')) ? [qs.get('t')] : [], note: re ? re.note : (qs.get('d') || ''), photos: [],
       people: re ? re.people : 1, hours: re ? re.hours : (svc.u === 'hora' ? 3 : 1),
-      loc: start, saveAs: '', lineEdited: !!start.line, editAt: [start.lat, start.lng],
-      when: mode === 'ya' ? {type: 'ahora'} : {type: 'fecha', date: '', time: ''},
+      online: !!(re && re.online), level: (re && re.level) || '', loc: start, saveAs: '', lineEdited: !!start.line, editAt: [start.lat, start.lng],
+      when: mode === 'ya' ? {type: 'ahora'} : re && re.when && re.when.type === 'flex' ? {type: 'flex'} : {type: 'fecha', date: '', time: ''},
       repeat: re && re.repeat ? re.repeat : 'no',
-      price: Number(qs.get('p')) || (fav && lastPrice(fav.name)) || (re ? re.price : ''), pay: re ? re.pay : (S.client.pay || 'efectivo'),
+      price: Number(qs.get('p')) || (fav && lastPrice(fav.name)) || (re ? re.price : ''), pay: (re ? re.pay : S.client.pay) === 'efectivo' || !(re ? re.pay : S.client.pay) ? 'efectivo' : 'chat',
       direct: fav ? fav.name : bizQ ? bizQ.n : null, directW: bizQ ? PL.bizW(bizQ) : null, fallback: true, chats: {}, cst: {}, ppos: {}
     };
     const dn = () => D.directW && D.directW.isBiz ? D.direct : PL.short(D.direct);
-    const STEPS = mode === 'ya' ? [que, donde, confirmar] : [que, cuando, donde, confirmar];
-    const NAMES = mode === 'ya' ? ['Servicio', 'Dirección', 'Confirmar'] : ['Servicio', 'Día', 'Dirección', 'Confirmar'];
-    const TITLES = mode === 'ya' ? ['¿Qué <span class="k">necesitas?</span>', '¿Dónde <span class="k">es?</span>', 'Revisa y <span class="k">confirma</span>'] : ['¿Qué <span class="k">necesitas?</span>', '¿Qué <span class="k">día?</span>', '¿Dónde <span class="k">es?</span>', 'Revisa y <span class="k">confirma</span>'];
+    const STEPS = [que, cuando, donde, confirmar];
+    const NAMES = ['Servicio', 'Cuándo', 'Dirección', 'Confirmar'];
+    const TITLES = ['¿Qué <span class="k">necesitas?</span>', '¿Para <span class="k">cuándo?</span>', '¿Dónde <span class="k">es?</span>', 'Revisa y <span class="k">confirma</span>'];
     const SIZE = {que: 'm', cuando: 's', donde: 'l', confirmar: 'm'};
     let step = 0;
 
     view.innerHTML = `<div class="flow" id="flow"><div class="flow-map" id="fmap"><span class="map-chip" id="mchip">${PL.ic('pin')}<span></span></span></div>
       <section class="flow-panel"><div class="fp-h"><button class="ibtn" id="back" type="button" aria-label="Atrás">${PL.ic('back')}</button><h1 id="fh"></h1></div>
       <ol class="fp-steps" id="fsteps" aria-label="Pasos">${NAMES.map(n => `<li>${n}</li>`).join('')}</ol>
-      <div class="mode-bar ${mode}" id="mbar"></div>
       <div class="fp-b" id="fb"></div><div class="fp-f" id="ff"></div></section></div>`;
     const flow = PL.$('#flow', view), fb = PL.$('#fb', view), ff = PL.$('#ff', view);
     const fm = PL.map(PL.$('#fmap', view), {center: [D.loc.lat, D.loc.lng], zoom: 15, label: 'Mapa de tu pedido', onPin: id => { const w = pros[Number(id.slice(1))]; if (w) openPro(w); }});
@@ -167,7 +165,7 @@
 
     const tot = () => D.price * D.people * (svc.u === 'hora' ? D.hours : 1);
     const nextBtn = (t = 'Continuar') => `<button class="btn btn-t" id="next" type="button">${t}<span class="arr">${PL.ic('arrow')}</span></button>`;
-    const head = () => `<div class="svc-head"><span class="svc-ic">${PL.si(svc.i)}</span><div><b>${PL.esc(svc.n)}</b><span>${svc.other ? 'Cuéntanos qué necesitas' : PL.esc(PL.cat(svc.c).name)}</span></div><a class="btn btn-l btn-xs" href="#/">Cambiar</a></div>`;
+    const head = () => `<div class="svc-head"><span class="svc-ic">${PL.si(svc.i)}</span><div><b>${PL.esc(svc.n)}</b><span>${svc.other ? 'Cuéntanos qué necesitas' : PL.esc(PL.cat(svc.c).name)}</span></div><a class="btn btn-l btn-xs" href="${svc.other ? '#/servicios' : '#/sector/' + svc.c}">Cambiar</a></div>`;
     const directBox = () => {
       if (!D.direct) return '';
       const f = PL.fav(D.direct) || D.directW; if (!f) return '';
@@ -179,20 +177,12 @@
     const weekday = iso => new Date(iso + 'T12:00').toLocaleDateString('es-PE', {weekday: 'long'}).replace(/o$/, 'os');
     const repTxt = () => D.repeat === 'no' ? '' : D.repeat === 'semana' && D.when.date ? `Todos los ${weekday(D.when.date)}` : PL.REPEAT[D.repeat];
 
-    function drawBar(){
-      const other = mode === 'ya' ? 'prog' : 'ya', canSwitch = step === 0 && (other === 'prog' || PL.canNow(svc));
-      PL.$('#mbar', view).innerHTML = mode === 'ya'
-        ? `${PL.ic('bolt')}<span><b>Inmediato</b> · atención en minutos</span>${canSwitch ? `<button type="button" data-sw="prog">Programar</button>` : ''}`
-        : `${PL.ic('cal')}<span><b>Programado</b> · eliges día y hora</span>${canSwitch ? `<button type="button" data-sw="ya">Inmediato</button>` : ''}`;
-      PL.$('#mbar', view).hidden = step > 0;
-      const sw = PL.$('[data-sw]', view);
-      if (sw) sw.onclick = () => { const p = new URLSearchParams(qs); p.set('m', sw.dataset.sw); PL.mode = sw.dataset.sw; PL.go(`#/pedir/${svc.id}?${p}`); };
-    }
+    const whenTxt = () => D.when.type === 'ahora' ? 'Lo antes posible' : D.when.type === 'fecha' && D.when.date && D.when.time ? PL.whenText(D.when) : 'El día que elijas';
 
     /* perfiles y chat de presupuesto (desde la lista o desde el pin del mapa) */
     function openPro(w){
-      PL.profile(w, {svc, district: D.loc.district || '', when: mode === 'ya' ? 'Puede ir hoy' : 'Agenda con anticipación', acceptLabel: `Pedirle a ${w.name.split(' ')[0]}`, onAccept: () => { D.direct = w.name; D.directW = w; que(); PL.toast(`Tu pedido le llegará primero a ${PL.short(w.name)}`); },
-        onChat: () => PL.quoteChat({w, svc, whenTxt: mode === 'ya' ? 'Inmediato' : 'El día que elijas', tasks: D.tasks, price: D.price || 0, msgs: (D.chats[w.name] = D.chats[w.name] || []), state: (D.cst[w.name] = D.cst[w.name] || {stage: 0}),
+      PL.profile(w, {svc, district: D.loc.district || '', when: mode === 'ya' ? 'Puede ir hoy' : 'Disponible para agendar', acceptLabel: `Pedirle a ${w.name.split(' ')[0]}`, onAccept: () => { D.direct = w.name; D.directW = w; que(); PL.toast(`Tu pedido le llegará primero a ${PL.short(w.name)}`); },
+        onChat: () => PL.quoteChat({w, svc, whenTxt: whenTxt(), tasks: D.tasks, price: D.price || 0, msgs: (D.chats[w.name] = D.chats[w.name] || []), state: (D.cst[w.name] = D.cst[w.name] || {stage: 0}),
           onAccept: (amt, sum) => { D.direct = w.name; D.directW = w; D.price = amt; if (sum && !D.note.includes(sum)) D.note = (D.note ? D.note + '\n' : '') + sum; go(step + 1); PL.toast(`Presupuesto aceptado. Completa los datos para enviárselo a ${PL.short(w.name)}`, 3600); }})});
     }
     function prosOnMap(){
@@ -207,11 +197,13 @@
       prosOnMap();
       const near = pros.map(w => ({w, km: PL.km([D.loc.lat, D.loc.lng], D.ppos[w.name] || [D.loc.lat, D.loc.lng])})).sort((a, b) => a.km - b.km);
       fb.innerHTML = `${directBox()}${head()}
-        ${!D.direct ? `<p class="blk-t">Cerca de ti <small>${PL.esc(D.loc.district || '')}</small></p><div class="pros" id="pros">${near.map(({w, km}) => `<button class="pro" type="button" data-pro="${PL.esc(w.name)}">${PL.avatar(w.name, w.color)}<b>${PL.esc(PL.short(w.name))}</b><span>${PL.ic('check')}Verificado</span><em>${mode === 'ya' ? `a ${PL.etaMin(km)} min` : kmTxt(km)}</em></button>`).join('')}</div>` : ''}
-        ${!D.direct && bizHere.length ? `<p class="blk-t">Empresas</p><div class="bizs" id="bizs">${bizHere.map(b => `<button class="biz" type="button" data-biz="${b.id}">${PL.bizLogo(b)}<span><b>${PL.esc(b.n)}</b><span class="t">${PL.esc(b.tag)}</span></span>${b.mine ? '<span class="pill a">Tu empresa</span>' : ''}</button>`).join('')}</div>` : ''}
+        ${!D.direct && bizHere.length ? `<p class="blk-t">Empresas <small>Con su propio equipo</small></p><div class="bizs" id="bizs">${bizHere.map(b => `<button class="biz" type="button" data-biz="${b.id}">${PL.bizLogo(b)}<span><b>${PL.esc(b.n)}</b><span class="t">${PL.esc(b.tag)}</span></span>${b.mine ? '<span class="pill a">Tu empresa</span>' : ''}</button>`).join('')}</div>` : ''}
+        ${!D.direct ? `<p class="blk-t">Personas cerca de ti <small>${PL.esc(D.loc.district || '')}</small></p><div class="pros" id="pros">${near.map(({w, km}) => `<button class="pro" type="button" data-pro="${PL.esc(w.name)}">${PL.avatar(w.name, w.color)}<b>${PL.esc(PL.short(w.name))}</b><span>${PL.ic('check')}Verificado</span><em>a ${kmTxt(km)}</em></button>`).join('')}</div>` : ''}
         ${svc.t.length ? `<p class="blk-t">¿Qué hay que hacer? <small>Elige una o más</small></p><div class="chips tasks" id="tasks">${svc.t.map(t => `<button class="chip" type="button" aria-pressed="${D.tasks.includes(t)}">${PL.ic('check', 'i ck')}${PL.esc(t)}</button>`).join('')}</div>` : ''}
         <label class="field" style="margin-top:18px"><span>${svc.other ? 'Describe el trabajo' : 'Detalles para cotizar'} <em>${svc.other ? '' : '(opcional)'}</em></span><textarea class="in" id="note" maxlength="400" placeholder="${svc.other ? 'Ej.: necesito alguien que arregle mi bicicleta' : 'Medidas, marca, piso, si hay que llevar materiales…'}">${PL.esc(D.note)}</textarea></label>
         <div class="photos" id="photos"><p class="blk-t" style="margin:0 0 8px">Fotos <small>Ayudan a cotizar mejor · hasta ${MAXPH}</small></p><div class="ph-row">${D.photos.map((p, k) => `<span class="ph-th"><img src="${p}" alt="Foto ${k + 1}"><button type="button" data-rmph="${k}" aria-label="Quitar foto ${k + 1}">${PL.ic('x')}</button></span>`).join('')}${D.photos.length < MAXPH ? `<label class="ph-add"><input type="file" accept="image/*" id="photo" multiple>${PL.ic('cam')}<span>Agregar</span></label>` : ''}</div></div>
+        ${svc.c === 'clases' ? `<p class="blk-t">¿Dónde es la clase?</p><div class="chips" id="modo"><button class="chip" type="button" data-on="0" aria-pressed="${!D.online}">${PL.ic('home')}En tu casa</button><button class="chip" type="button" data-on="1" aria-pressed="${D.online}">${PL.ic('lap' in PL.UI ? 'lap' : 'chat')}Online, por videollamada</button></div>
+          <p class="blk-t">Nivel</p><div class="chips" id="nivel">${['Desde cero', 'Intermedio', 'Avanzado'].map(l => `<button class="chip" type="button" data-lv="${l}" aria-pressed="${D.level === l}">${l}</button>`).join('')}</div>` : ''}
         ${svc.team ? qty('people', '¿Cuántas personas?', 'Para eventos y turnos') : ''}
         ${svc.u === 'hora' ? qty('hours', '¿Cuántas horas?', 'Pagas por hora') : ''}`;
       ff.innerHTML = nextBtn();
@@ -223,13 +215,15 @@
       const ph = PL.$('#photo', fb);
       if (ph) ph.onchange = e => { const files = Array.from(e.target.files).slice(0, MAXPH - D.photos.length); let left = files.length; files.forEach(f => shrink(f, url => { D.photos.push(url); if (!--left) que(); })); };
       fb.querySelectorAll('[data-rmph]').forEach(b => b.onclick = () => { D.photos.splice(Number(b.dataset.rmph), 1); que(); });
+      const md = PL.$('#modo', fb); if (md) md.onclick = e => { const b = e.target.closest('[data-on]'); if (!b) return; D.online = b.dataset.on === '1'; PL.$$('[data-on]', fb).forEach(x => x.setAttribute('aria-pressed', x === b)); };
+      const lv = PL.$('#nivel', fb); if (lv) lv.onclick = e => { const b = e.target.closest('[data-lv]'); if (!b) return; D.level = D.level === b.dataset.lv ? '' : b.dataset.lv; PL.$$('[data-lv]', fb).forEach(x => x.setAttribute('aria-pressed', x.dataset.lv === D.level)); };
       fb.querySelectorAll('[data-q]').forEach(b => b.onclick = () => { const k = b.dataset.q; D[k] = Math.max(1, Math.min(k === 'people' ? 30 : 12, D[k] + Number(b.dataset.d))); PL.$('#q-' + k, fb).textContent = D[k]; });
       const bz = PL.$('#bizs', fb);
       if (bz) bz.onclick = e => {
         const x = e.target.closest('[data-biz]'); if (!x) return;
         const b = PL.biz(x.dataset.biz), bw = PL.bizW(b);
         const pick = () => { D.direct = b.n; D.directW = bw; que(); PL.toast(`Tu pedido le llegará a ${b.n}`); };
-        PL.bizSheet(b, {onAccept: pick, onChat: () => PL.quoteChat({w: bw, svc, whenTxt: mode === 'ya' ? 'Inmediato' : 'El día que elijas', tasks: D.tasks, price: D.price || 0, msgs: (D.chats[b.id] = D.chats[b.id] || []), state: (D.cst[b.id] = D.cst[b.id] || {stage: 0}),
+        PL.bizSheet(b, {onAccept: pick, onChat: () => PL.quoteChat({w: bw, svc, whenTxt: whenTxt(), tasks: D.tasks, price: D.price || 0, msgs: (D.chats[b.id] = D.chats[b.id] || []), state: (D.cst[b.id] = D.cst[b.id] || {stage: 0}),
           onAccept: (amt, sum) => { D.direct = b.n; D.directW = bw; D.price = amt; if (sum && !D.note.includes(sum)) D.note = (D.note ? D.note + '\n' : '') + sum; go(step + 1); PL.toast(`Presupuesto aceptado. Completa los datos para enviárselo a ${b.n}`, 3600); }})});
       };
       const pl = PL.$('#pros', fb);
@@ -238,40 +232,71 @@
       sync();
     }
 
-    /* ——— paso: qué día (solo programado) ——— */
+    /* ——— paso: para cuándo. Lo principal es agendar; si es urgente, lo antes posible; o sin fecha fija ——— */
     function cuando(){
       fm.clear(); fm.setMe([D.loc.lat, D.loc.lng], {zoom: 15});
       const days = [];
       for (let i = 0; i < 21; i++) days.push(PL.isoDay(new Date(Date.now() + i * 864e5)));
-      const canRep = !svc.other && !NOREP.includes(svc.c);
-      fb.innerHTML = `<p class="blk-t">Día</p><div class="day-rail" id="days" role="group" aria-label="Elige el día">${days.map((iso, i) => { const [dw, dn, dm] = PL.fdate(iso + 'T12:00').split(' '); return `<button class="day" type="button" data-day="${iso}" aria-pressed="${D.when.date === iso}"><span>${i === 0 ? 'Hoy' : i === 1 ? 'Mañana' : dw}</span><b>${dn}</b><span>${dm}</span></button>`; }).join('')}</div>
-        <p class="blk-t">Hora de llegada</p><div class="slots" id="times"></div>
-        ${canRep ? `<p class="blk-t">¿Se repite? <small>Ideal para limpieza, cuidado y clases</small></p><div class="chips" id="rep">${Object.keys(PL.REPEAT).map(k => `<button class="chip" type="button" data-r="${k}" aria-pressed="${D.repeat === k}">${PL.REPEAT[k]}</button>`).join('')}</div>` : ''}
-        <div class="when-sum" id="ws" hidden></div>`;
+      const canRep = !svc.other && !NOREP.includes(svc.c), now = PL.canNow(svc), W = D.when.type;
+      fb.innerHTML = `<div class="when-pick" id="wp" role="radiogroup" aria-label="Para cuándo">
+          <button type="button" role="radio" data-w="fecha" aria-checked="${W === 'fecha'}">${PL.ic('cal')}<span><b>Elegir día y hora</b><span>Lo agendas con anticipación, una vez o seguido</span></span><i class="radio" aria-hidden="true"></i></button>
+          <button type="button" role="radio" data-w="ahora" aria-checked="${W === 'ahora'}"${now ? '' : ' disabled'}>${PL.ic('bolt')}<span><b>Lo antes posible</b><span>${now ? 'Hoy mismo: quien acepte sale hacia tu dirección' : 'Este servicio se agenda con anticipación'}</span></span><i class="radio" aria-hidden="true"></i></button>
+          <button type="button" role="radio" data-w="flex" aria-checked="${W === 'flex'}">${PL.ic('chat')}<span><b>Sin fecha fija</b><span>Contratas ahora y acuerdan el día por chat</span></span><i class="radio" aria-hidden="true"></i></button>
+        </div><div id="wb"></div>`;
       ff.innerHTML = nextBtn();
-      const next = PL.$('#next', ff);
-      function drawTimes(){
-        const isToday = D.when.date === days[0], h0 = new Date().getHours() + 2;
-        if (isToday && D.when.time && Number(D.when.time.slice(0, 2)) < h0) D.when.time = '';
-        PL.$('#times', fb).innerHTML = SLOTS.map(([g, ts]) => `<div class="slot"><span>${g}</span><div class="chips">${ts.map(t => { const off = isToday && Number(t.slice(0, 2)) < h0; return `<button class="chip" type="button" data-t="${t}" aria-pressed="${D.when.time === t}"${off ? ' disabled' : ''}>${PL.fhm(t).replace(':00', '')}</button>`; }).join('')}</div></div>`).join('');
+      const next = PL.$('#next', ff), wb = PL.$('#wb', fb);
+      function fecha(){
+        wb.innerHTML = `<p class="blk-t">Día</p><div class="day-rail" id="days" role="group" aria-label="Elige el día">${days.map((iso, i) => { const [dw, dn, dm] = PL.fdate(iso + 'T12:00').split(' '); return `<button class="day" type="button" data-day="${iso}" aria-pressed="${D.when.date === iso}"><span>${i === 0 ? 'Hoy' : i === 1 ? 'Mañana' : dw}</span><b>${dn}</b><span>${dm}</span></button>`; }).join('')}</div>
+          <p class="blk-t">Hora de llegada</p><div class="slots" id="times"></div>
+          ${canRep ? `<p class="blk-t">¿Se repite? <small>Ideal para limpieza, cuidado, belleza y clases</small></p><div class="chips" id="rep">${Object.keys(PL.REPEAT).map(k => `<button class="chip" type="button" data-r="${k}" aria-pressed="${D.repeat === k}">${PL.REPEAT[k]}</button>`).join('')}</div>` : ''}
+          <div class="when-sum" id="ws" hidden></div>`;
+        const drawTimes = () => {
+          const isToday = D.when.date === days[0], h0 = new Date().getHours() + 2;
+          if (isToday && D.when.time && Number(D.when.time.slice(0, 2)) < h0) D.when.time = '';
+          PL.$('#times', wb).innerHTML = SLOTS.map(([g, ts]) => `<div class="slot"><span>${g}</span><div class="chips">${ts.map(t => { const off = isToday && Number(t.slice(0, 2)) < h0; return `<button class="chip" type="button" data-t="${t}" aria-pressed="${D.when.time === t}"${off ? ' disabled' : ''}>${PL.fhm(t).replace(':00', '')}</button>`; }).join('')}</div></div>`).join('');
+        };
+        const sync = () => {
+          next.disabled = !(D.when.date && D.when.time);
+          const ws = PL.$('#ws', wb); ws.hidden = next.disabled;
+          ws.innerHTML = `${PL.ic('cal')}<span><b>${PL.esc(PL.whenText(D.when))}</b>${D.repeat !== 'no' ? '<br>' + PL.esc(repTxt()) + ', a la misma hora' : ''}</span>`;
+        };
+        PL.$('#days', wb).onclick = e => { const b = e.target.closest('[data-day]'); if (!b) return; D.when.date = b.dataset.day; PL.$$('[data-day]', wb).forEach(x => x.setAttribute('aria-pressed', x === b)); drawTimes(); sync(); };
+        PL.$('#times', wb).onclick = e => { const b = e.target.closest('[data-t]'); if (!b || b.disabled) return; D.when.time = b.dataset.t; PL.$$('[data-t]', wb).forEach(x => x.setAttribute('aria-pressed', x === b)); sync(); };
+        const rep = PL.$('#rep', wb);
+        if (rep) rep.onclick = e => { const b = e.target.closest('[data-r]'); if (!b) return; D.repeat = b.dataset.r; PL.$$('[data-r]', wb).forEach(x => x.setAttribute('aria-pressed', x === b)); sync(); };
+        drawTimes(); sync();
       }
-      function sync(){
-        next.disabled = !(D.when.date && D.when.time);
-        const ws = PL.$('#ws', fb);
-        ws.hidden = next.disabled;
-        ws.innerHTML = `${PL.ic('cal')}<span><b>${PL.esc(PL.whenText(D.when))}</b>${D.repeat !== 'no' ? '<br>' + PL.esc(repTxt()) + ', a la misma hora' : ''}</span>`;
+      function body(){
+        const t = D.when.type;
+        mode = t === 'ahora' ? 'ya' : 'prog';
+        if (t === 'fecha') { fecha(); return; }
+        next.disabled = false;
+        wb.innerHTML = t === 'ahora'
+          ? `<div class="when-sum">${PL.ic('bolt')}<span><b>Hoy, lo antes posible</b><br><span class="muted">Te llegan ofertas de personas cerca y sigues su llegada en el mapa.</span></span></div>`
+          : `<div class="when-sum">${PL.ic('chat')}<span><b>Fecha a coordinar</b><br><span class="muted">Eliges a quién contratar y acuerdan el día por chat. Después puedes fijarlo desde tu pedido.</span></span></div>`;
       }
-      PL.$('#days', fb).onclick = e => { const b = e.target.closest('[data-day]'); if (!b) return; D.when.date = b.dataset.day; PL.$$('[data-day]', fb).forEach(x => x.setAttribute('aria-pressed', x === b)); drawTimes(); sync(); };
-      PL.$('#times', fb).onclick = e => { const b = e.target.closest('[data-t]'); if (!b || b.disabled) return; D.when.time = b.dataset.t; PL.$$('[data-t]', fb).forEach(x => x.setAttribute('aria-pressed', x === b)); sync(); };
-      const rep = PL.$('#rep', fb);
-      if (rep) rep.onclick = e => { const b = e.target.closest('[data-r]'); if (!b) return; D.repeat = b.dataset.r; PL.$$('[data-r]', fb).forEach(x => x.setAttribute('aria-pressed', x === b)); sync(); };
+      PL.$('#wp', fb).onclick = e => {
+        const b = e.target.closest('[data-w]'); if (!b || b.disabled) return;
+        const t = b.dataset.w;
+        if (t !== D.when.type) { D.when = t === 'fecha' ? {type: 'fecha', date: '', time: ''} : {type: t}; if (t !== 'fecha') D.repeat = 'no'; }
+        PL.$$('[data-w]', fb).forEach(x => x.setAttribute('aria-checked', x === b)); body();
+      };
       next.onclick = () => go(step + 1);
-      drawTimes(); sync();
+      body();
     }
 
     /* ——— paso: dónde (mapa real con pin fijo) ——— */
     function donde(){
       fm.clear();
+      if (D.online) {
+        fm.setMe([D.loc.lat, D.loc.lng], {zoom: 13});
+        fb.innerHTML = `<div class="when-sum">${PL.ic('chat')}<span><b>Clase online</b><br><span class="muted">No hace falta dirección. Cuando confirmes, quien acepte te envía el enlace de la videollamada por el chat.</span></span></div>
+          <button class="row-btn" type="button" id="toHome">${PL.ic('home')}<span><b>Prefiero que sea en mi casa</b><span>Cambiar a clase presencial</span></span>${PL.ic('chev', 'i chev')}</button>`;
+        ff.innerHTML = nextBtn();
+        PL.$('#toHome', fb).onclick = () => { D.online = false; donde(); };
+        PL.$('#next', ff).onclick = () => go(step + 1);
+        return;
+      }
       ff.innerHTML = nextBtn('Confirmar dirección');
       const next = PL.$('#next', ff);
       const pp = PL.placePanel({fm, host: fb, loc: D.loc, tip: mode === 'ya' ? 'El servicio llega aquí' : 'Aquí es el servicio', save: !!PL.me(), saveAs: D.saveAs,
@@ -282,12 +307,12 @@
     /* ——— paso: confirmar (como el checkout de una app de reparto) ——— */
     function confirmar(){
       fm.clear(); fm.setMe([D.loc.lat, D.loc.lng], {zoom: 16.5}); chip(D.loc.district);
-      const me = PL.me(), prog = mode === 'prog';
+      const me = PL.me(), wt = D.when.type;
       const iWhen = STEPS.indexOf(cuando), iWhere = STEPS.indexOf(donde);
-      const svcSub = [D.tasks.join(', '), !D.tasks.length && D.note ? D.note.slice(0, 60) : '', D.photos.length ? `${D.photos.length} ${D.photos.length === 1 ? 'foto' : 'fotos'}` : '', D.people > 1 ? `${D.people} personas` : '', svc.u === 'hora' ? `${D.hours} h` : ''].filter(Boolean).join(' · ');
+      const svcSub = [D.tasks.join(', '), D.level, !D.tasks.length && D.note ? D.note.slice(0, 60) : '', D.photos.length ? `${D.photos.length} ${D.photos.length === 1 ? 'foto' : 'fotos'}` : '', D.people > 1 ? `${D.people} personas` : '', svc.u === 'hora' ? `${D.hours} h` : ''].filter(Boolean).join(' · ');
       fb.innerHTML = `<div class="ck">
-          <button class="ck-row" type="button" data-to="${iWhere}">${PL.ic('pin')}<span><small>Dirección</small><b>${PL.esc(D.loc.line)}</b><span>${PL.esc([D.loc.floor, D.loc.district].filter(Boolean).join(' · '))}${D.loc.ref ? ' · ' + PL.esc(D.loc.ref) : ''}</span></span>${PL.ic('chev', 'i chev')}</button>
-          <button class="ck-row" type="button" ${prog ? `data-to="${iWhen}"` : 'disabled'}>${PL.ic(prog ? 'cal' : 'bolt')}<span><small>Cuándo</small><b>${prog ? PL.esc(PL.whenText(D.when)) : 'Inmediato'}</b><span>${prog ? PL.esc(repTxt() || 'Solo una vez') : 'Quien acepte sale hacia tu dirección'}</span></span>${prog ? PL.ic('chev', 'i chev') : ''}</button>
+          <button class="ck-row" type="button" data-to="${iWhere}">${PL.ic(D.online ? 'chat' : 'pin')}<span><small>${D.online ? 'Modalidad' : 'Dirección'}</small><b>${D.online ? 'Online, por videollamada' : PL.esc(D.loc.line)}</b><span>${D.online ? 'Te envían el enlace por el chat' : PL.esc([D.loc.floor, D.loc.district].filter(Boolean).join(' · ')) + (D.loc.ref ? ' · ' + PL.esc(D.loc.ref) : '')}</span></span>${PL.ic('chev', 'i chev')}</button>
+          <button class="ck-row" type="button" data-to="${iWhen}">${PL.ic(wt === 'ahora' ? 'bolt' : wt === 'flex' ? 'chat' : 'cal')}<span><small>Cuándo</small><b>${wt === 'ahora' ? 'Lo antes posible' : wt === 'flex' ? 'Fecha a coordinar' : PL.esc(PL.whenText(D.when))}</b><span>${wt === 'ahora' ? 'Hoy: quien acepte sale hacia tu dirección' : wt === 'flex' ? 'Acuerdan el día por chat' : PL.esc(repTxt() || 'Solo una vez')}</span></span>${PL.ic('chev', 'i chev')}</button>
           <button class="ck-row" type="button" data-to="0"><span class="ck-svc">${PL.si(svc.i)}</span><span><small>Servicio</small><b>${PL.esc(svc.n)}</b><span>${PL.esc(svcSub || 'Sin detalles')}</span></span>${PL.ic('chev', 'i chev')}</button>
         </div>
         ${favsHere.length && !fav && !D.directW ? `<p class="blk-t">¿A quién se lo pides?</p><div class="chips" id="who"><button class="chip" type="button" data-who="" aria-pressed="${!D.direct}">${PL.ic('users')}Recibir ofertas</button>${favsHere.map(f => `<button class="chip who" type="button" data-who="${PL.esc(f.name)}" aria-pressed="${D.direct === f.name}">${PL.avatar(f.name, f.color, 'xs')}${PL.esc(PL.short(f.name))}</button>`).join('')}</div>` : directBox()}
@@ -295,8 +320,8 @@
         <p class="blk-t">¿Cuánto ofreces? <small>Tú pones el precio${svc.other ? '' : ' ' + PL.unitText(svc.u)}${D.people > 1 ? ', por persona' : ''}</small></p>
         <label class="offer-in"><span>S/</span><input id="pv" type="number" inputmode="numeric" min="1" step="1" placeholder="0" aria-label="Tu oferta en soles" value="${D.price || ''}"></label>
         <p class="price-hint ok" id="ph"></p>
-        <p class="blk-t">Pago <small>Directo a quien hace el trabajo, al terminar</small></p>
-        <div class="pay-rows" id="pay" role="radiogroup" aria-label="Forma de pago">${[['efectivo', 'Efectivo', 'Le pagas en mano al terminar', '#D6F4E3', PL.ic('cash')], ['yape', 'Yape', 'Al número que te indique al terminar', '#E9E3FF', '<b>Y</b>'], ['plin', 'Plin', 'Al número que te indique al terminar', '#D9F5EE', '<b>P</b>']].map(m => `<button class="pay-row" type="button" role="radio" data-m="${m[0]}" aria-checked="${D.pay === m[0]}"><span class="mi" style="background:${m[3]}">${m[4]}</span><span><b>${m[1]}</b><span>${m[2]}</span></span><i class="radio" aria-hidden="true"></i></button>`).join('')}</div>
+        <p class="blk-t">Pago <small>En el momento, directo a quien hace el trabajo</small></p>
+        <div class="pay-rows" id="pay" role="radiogroup" aria-label="Forma de pago">${[['efectivo', 'Efectivo', 'En mano, en el momento', '#D6F4E3', PL.ic('cash')], ['chat', 'Como acordemos por el chat', 'Yape, Plin, transferencia u otra forma', '#E9E3FF', PL.ic('chat')]].map(m => `<button class="pay-row" type="button" role="radio" data-m="${m[0]}" aria-checked="${D.pay === m[0]}"><span class="mi" style="background:${m[3]}">${m[4]}</span><span><b>${m[1]}</b><span>${m[2]}</span></span><i class="radio" aria-hidden="true"></i></button>`).join('')}</div>
         <p class="blk-t">Contacto</p>
         ${me ? `<div class="ck-me">${PL.avatar(me.name || 'Tú', '#FFE3D4')}<span><b>${PL.esc(me.name || 'Tu cuenta')}</b><span>${me.phone ? '+51 ' + PL.esc(PL.fmtPhone(me.phone)) : 'Agrega un celular para que te avisen al llegar'}</span></span><a class="btn btn-l btn-xs" href="#/perfil">Editar</a></div>
           ${me.phone ? '' : `<label class="field" style="margin-top:10px"><span>Celular</span><span class="tel"><span class="cc">+51</span><input class="in" id="cp" type="tel" inputmode="numeric" autocomplete="tel-national" maxlength="9" placeholder="9XXXXXXXX"></span></label>`}`
@@ -306,7 +331,7 @@
       function draw(){
         PL.$('#tt', ff).textContent = D.price ? PL.money(tot()) : 'S/ —';
         PL.$('#ph', fb).textContent = D.direct ? `Se lo enviamos primero a ${dn()}.` : svc.u === 'hora' && D.price ? `${PL.money(D.price)} por hora × ${D.hours} h${D.people > 1 ? ` × ${D.people} personas` : ''}. Quien acepte, acepta tu precio.` : 'Quien acepte tu pedido, acepta tu precio. Si nadie acepta, puedes subirlo.';
-        PL.$('#go', ff).textContent = D.direct ? `Enviar a ${dn()}` : mode === 'ya' ? 'Solicitar ahora' : 'Publicar pedido';
+        PL.$('#go', ff).textContent = D.direct ? `Enviar a ${dn()}` : wt === 'ahora' ? 'Solicitar ahora' : wt === 'fecha' ? 'Agendar' : 'Publicar pedido';
         PL.$('#fbk', fb).hidden = !D.direct;
       }
       fb.querySelectorAll('[data-to]').forEach(b => b.onclick = () => go(Number(b.dataset.to)));
@@ -323,7 +348,7 @@
 
     function submit(){
       const pv = PL.$('#pv', fb);
-      if (!D.loc.district || !PL.zone(D.loc.district)) { PL.toast('Elige una dirección dentro de la zona de servicio'); go(STEPS.indexOf(donde)); return; }
+      if (!D.online && (!D.loc.district || !PL.zone(D.loc.district))) { PL.toast('Elige una dirección dentro de la zona de servicio'); go(STEPS.indexOf(donde)); return; }
       if (!D.price) { PL.toast('Escribe cuánto ofreces'); pv.focus(); return; }
       const me = PL.me();
       if (!me) { PL.authSheet({mode: 'in', reason: 'Ingresa o crea tu cuenta para enviar tu pedido. Lo que llenaste se mantiene.', onDone: () => { confirmar(); setTimeout(submit, 80); }}); return; }
@@ -337,13 +362,13 @@
       S.client.name = me.name || S.client.name; S.client.phone = me.phone || ''; S.client.district = S.client.district || D.loc.district;
       const L0 = D.loc;
       S.lastLoc = {lat: L0.lat, lng: L0.lng, line: L0.line, floor: L0.floor, ref: L0.ref, district: L0.district};
-      if (D.saveAs) {
+      if (D.saveAs && !D.online) {
         S.addresses = (S.addresses || []).filter(a => D.saveAs === 'Otra' || a.label !== D.saveAs);
         S.addresses.unshift({label: D.saveAs, district: L0.district, line: L0.line, floor: L0.floor, refTxt: L0.ref, ref: PL.addrText(L0), lat: L0.lat, lng: L0.lng});
       }
       const o = {id: PL.uid(), mode, svc: svc.id, tasks: D.tasks, note: D.note.trim(), photos: D.photos.length, people: D.people, hours: D.hours, u: svc.u,
-        district: L0.district, address: PL.addrText(L0), line: L0.line, floor: L0.floor, ref: L0.ref, lat: L0.lat, lng: L0.lng,
-        when: Object.assign({}, D.when), repeat: mode === 'prog' ? D.repeat : 'no', direct: D.direct, directW: D.directW, fallback: D.fallback, price: D.price, pay: D.pay, status: 'buscando', createdAt: Date.now()};
+        online: D.online, level: D.level, district: L0.district || 'Online', address: D.online ? 'Clase online' : PL.addrText(L0), line: L0.line, floor: L0.floor, ref: L0.ref, lat: L0.lat, lng: L0.lng,
+        when: Object.assign({}, D.when), repeat: D.when.type === 'fecha' ? D.repeat : 'no', direct: D.direct, directW: D.directW, fallback: D.fallback, price: D.price, pay: D.pay, status: 'buscando', createdAt: Date.now()};
       S.orders.push(o); PL.save();
       PL.toSheet({tipo: 'pedido', modo: mode === 'ya' ? 'inmediato' : 'programado', servicio: svc.n, trabajo: D.tasks.join(', '), detalle: D.note, distrito: L0.district, referencia: o.address, ubicacion: `${L0.lat},${L0.lng}`, cuando: mode === 'ya' ? 'Ahora' : PL.whenText(D.when), repite: PL.REPEAT[D.repeat], directo: D.direct || '', precio: D.price, personas: D.people, pago: D.pay, nombre: me.name, wa: me.phone || ''});
       PL.go('#/pedido/' + o.id);
@@ -356,7 +381,6 @@
       PL.$$('#fsteps li', view).forEach((d, i) => { d.className = i < n ? 'done' : i === n ? 'now' : ''; });
       flow.dataset.map = SIZE[STEPS[n].name] || 'm';
       chip(D.loc.district || 'Tu zona');
-      drawBar();
       STEPS[n]();
       const panel = PL.$('.flow-panel', view); if (panel) panel.scrollTop = 0;
       if (n > 0) window.scrollTo(0, 0);
