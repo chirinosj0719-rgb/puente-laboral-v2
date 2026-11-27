@@ -60,8 +60,14 @@
     'auth/account-exists-with-different-credential': 'Ese correo ya tiene una cuenta. Ingresa con tu correo y contraseña.',
     'auth/requires-recent-login': 'Por seguridad, cierra sesión, vuelve a ingresar e inténtalo otra vez.',
     'auth/user-disabled': 'Esta cuenta está desactivada. Escríbenos desde Ayuda.',
-    'auth/web-storage-unsupported': 'Tu navegador no permite guardar la sesión. Desactiva el modo privado e inténtalo otra vez.'
+    'auth/web-storage-unsupported': 'Tu navegador no permite guardar la sesión. Desactiva el modo privado e inténtalo otra vez.',
+    'auth/billing-not-enabled': 'Por ahora no podemos enviar SMS. Ingresa con Google o con tu correo.',
+    'auth/error-code:-39': 'No pudimos enviar el SMS a ese número en este momento. Espera unos minutos o ingresa con Google o con tu correo.'
   };
+  /* Firebase solo envía SMS si el proyecto tiene facturación (plan Blaze). Sin ella, el celular no se ofrece. */
+  let smsOff = false;
+  const SMS = () => !FBC() || (PL.CFG.SMS !== false && !smsOff);
+  const NOSMS = new Set(['auth/billing-not-enabled', 'auth/operation-not-allowed', 'auth/quota-exceeded']);
   /* la cuenta local que acompaña al usuario de Firebase (para el perfil, el menú y los pedidos) */
   function upsert(u, extra = {}){
     const S = PL.S; S.accounts = S.accounts || [];
@@ -104,7 +110,7 @@
       auth.onAuthStateChanged(onUser);
       return auth;
     })().catch(e => { fbP = null; throw e; })),
-    msg: e => { const c = e && e.code; if (c in ERR) return ERR[c]; console.warn('[Agéndalo] ingreso', e); return 'Algo salió mal. Inténtalo otra vez.'; },
+    msg: e => { const c = e && e.code; if (c in ERR) return ERR[c]; console.warn('[Agéndalo] ingreso', e); return `Algo salió mal. Inténtalo otra vez.${c ? ` (código: ${String(c).replace(/^auth\//, '')})` : ''}`; },
     out: () => { if (FBC() && (fbP || PL.fb.auth())) PL.fb.ready().then(a => a.signOut()).catch(() => {}); },
     user: async () => { const a = await PL.fb.ready(); if (!a.currentUser) { const e = new Error('no user'); e.code = 'auth/requires-recent-login'; throw e; } return a.currentUser; },
     sync: u => { const acc = upsert(u); PL.save(); if (PL.syncTop) PL.syncTop(); return acc; },
@@ -148,7 +154,7 @@
 
   /* host: contenedor · o: {mode: 'in' | 'up', onDone, reason, onMode} */
   PL.authForm = (host, o = {}) => {
-    const st = {mode: o.mode || 'in', me: 'cel', step: 'start', phone: '', name: '', email: '', code: '', purpose: '', wait: 0, conf: null, user: null};
+    const st = {mode: o.mode || 'in', me: SMS() ? 'cel' : 'mail', step: 'start', phone: '', name: '', email: '', code: '', purpose: '', wait: 0, conf: null, user: null};
     const fb = !!FBC();
     let tick = null;
     const stopTick = () => { if (tick) { clearInterval(tick); tick = null; } };
@@ -250,12 +256,13 @@
         return;
       }
       /* inicio */
+      const sms = SMS(); if (!sms) st.me = 'mail';
       const cel = st.me === 'cel';
       host.innerHTML = `<div class="au">
-        <div class="au-h"><h2>${up ? 'Crea tu cuenta' : 'Ingresa a tu cuenta'}</h2><p>${o.reason ? PL.esc(o.reason) : up ? 'Para pedir servicios, guardar tus direcciones y volver a contratar a quien te ayudó.' : fb ? 'Con Google, tu celular o tu correo.' : 'Con tu celular o con tu correo.'}</p></div>
+        <div class="au-h"><h2>${up ? 'Crea tu cuenta' : 'Ingresa a tu cuenta'}</h2><p>${o.reason ? PL.esc(o.reason) : up ? 'Para pedir servicios, guardar tus direcciones y volver a contratar a quien te ayudó.' : fb ? (sms ? 'Con Google, tu celular o tu correo.' : 'Con Google o con tu correo.') : 'Con tu celular o con tu correo.'}</p></div>
         ${fb ? `<div class="au-gwrap"><button class="btn btn-full au-gbtn" type="button" id="au-g"${PL.fb.auth() ? '' : ' disabled'}>${GLOGO}<span>${up ? 'Crear cuenta con Google' : 'Continuar con Google'}</span></button>
           ${up ? '<p class="au-gnote">Al continuar con Google aceptas los <a href="#/legal" target="_blank">Términos</a> y la <a href="#/legal" target="_blank">Política de privacidad</a>.</p>' : ''}</div><p class="au-or"><span>o con</span></p>` : ''}
-        <div class="seg au-seg" role="group" aria-label="Cómo ${up ? 'crear la cuenta' : 'ingresar'}"><button type="button" data-me="cel" aria-pressed="${cel}">${PL.ic('phone')}Celular</button><button type="button" data-me="mail" aria-pressed="${!cel}">${PL.ic('mail')}Correo</button></div>
+        ${sms ? `<div class="seg au-seg" role="group" aria-label="Cómo ${up ? 'crear la cuenta' : 'ingresar'}"><button type="button" data-me="cel" aria-pressed="${cel}">${PL.ic('phone')}Celular</button><button type="button" data-me="mail" aria-pressed="${!cel}">${PL.ic('mail')}Correo</button></div>` : ''}
         <form id="au-f" novalidate>
           ${up ? `<label class="field"><span>Nombre y apellido</span><input class="in" id="au-n" autocomplete="name" maxlength="60" value="${PL.esc(st.name || '')}"></label>` : ''}
           ${cel ? `<label class="field"><span>Celular</span><span class="tel"><span class="cc">+51</span><input class="in" id="au-ph" type="tel" inputmode="numeric" autocomplete="tel-national" maxlength="11" placeholder="9XX XXX XXX" value="${PL.esc(PL.fmtPhone(st.phone))}"></span></label>`
@@ -270,7 +277,7 @@
         <p class="au-alt">${up ? '¿Ya tienes cuenta?' : '¿Todavía no tienes cuenta?'} <button type="button" class="au-link" data-sw>${up ? 'Ingresa' : 'Crea una'}</button></p>
       </div>`;
       const g = PL.$('#au-g', host); if (g) g.onclick = () => google(g);
-      PL.$('.au-seg', host).onclick = e => { const b = e.target.closest('[data-me]'); if (!b) return; keep(); st.me = b.dataset.me; draw(); };
+      if (sms) PL.$('.au-seg', host).onclick = e => { const b = e.target.closest('[data-me]'); if (!b) return; keep(); st.me = b.dataset.me; draw(); };
       PL.$('[data-sw]', host).onclick = () => { keep(); st.mode = up ? 'in' : 'up'; draw(); if (o.onMode) o.onMode(st.mode); };
       const ph = PL.$('#au-ph', host);
       if (ph) ph.oninput = () => { const d = digits(ph.value).slice(0, 9); ph.value = d.length > 6 ? `${d.slice(0, 3)} ${d.slice(3, 6)} ${d.slice(6)}` : d.length > 3 ? `${d.slice(0, 3)} ${d.slice(3)}` : d; };
@@ -348,7 +355,12 @@
         const r = await Promise.race([a.signInWithPhoneNumber('+51' + st.phone, verifier()), closed]);
         if (r === 'closed') { b(); return; }
         st.conf = r; st.wait = 45; st.step = 'otp'; draw();
-      } catch (x) { b(); err(PL.fb.msg(x), st.step === 'start' ? '#au-ph' : null); }
+      } catch (x) {
+        b();
+        /* sin SMS en el proyecto: se pasa al correo y se avisa */
+        if (NOSMS.has(x.code) && st.step === 'start') { smsOff = true; st.me = 'mail'; draw(); err(PL.fb.msg(x)); return; }
+        err(PL.fb.msg(x), st.step === 'start' ? '#au-ph' : null);
+      }
       finally { closed.stop(); }
     }
     async function verify(v, ins){

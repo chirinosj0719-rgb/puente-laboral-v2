@@ -9,6 +9,9 @@ PL.CFG = {
   /* Firebase Authentication (proyecto agendalo-31b1a): Google, celular por SMS y correo con contraseña.
      Esta configuración es pública por diseño (la protegen los dominios autorizados en Firebase).
      Si se deja vacía, las cuentas se guardan solo en este dispositivo. */
+  /* Ingreso con celular por SMS. Firebase solo envía SMS si el proyecto tiene una cuenta de facturación
+     (plan Blaze). Mientras esté en false, se ingresa con Google o con correo. */
+  SMS: false,
   FIREBASE: {
     apiKey: 'AIzaSyCRp8RMk86IzyXKlh_zCBjlggi5jAqeWJU',
     authDomain: 'agendalo-31b1a.firebaseapp.com',
